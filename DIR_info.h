@@ -9,9 +9,7 @@
 #define ENTRIES_PER_BLOCK (BLOCK_SIZE / DIR_ENTRY_SIZE)
 
 typedef struct {
-    char filename[40];         
-    uint8_t attributes;
-    uint8_t reserved;
+    char filename[16];         
     uint16_t creation_time;
     uint16_t creation_date;
     uint16_t access_date;
