@@ -1,5 +1,5 @@
 #pragma once
-#include <cstdint>
+#include <stdint.h>
 #include "FS_info.h"
 #include "FAT_info.h"
 #include "DIR_info.h"

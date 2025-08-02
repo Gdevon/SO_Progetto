@@ -2,7 +2,7 @@
 #include "FS_info.h"
 #include "FAT_info.h"
 #include "DIR_info.h"
-#include <cstdint>
+#include <stdint.h>
 typedef enum{
     PERM_WRITE = 1,
     PERM_READ = 2,

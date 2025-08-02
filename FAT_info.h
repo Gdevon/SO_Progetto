@@ -1,6 +1,6 @@
 #pragma once
 #include "FS_info.h"
-
+#include "linked_list.h"
 //costanti per la gestione della fat
 #define FAT_ENTRY_SIZE 2  // entries a 16 bit
 #define FAT_ENTRIES DATA_BLOCKS //numero di entries uguale al numero di blocchi totale 
