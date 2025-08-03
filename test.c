@@ -40,5 +40,6 @@ int main(int argc, char* argv[]){
         }
         print_FileHandle(fh2);
         free_FileHandle(fh);
+        free_FileHandle(fh2);
         free_Dir_Entry(de);
     }
