@@ -27,7 +27,7 @@ int fill_Dir_Entry(Dir_Entry* de){
 }
 void print_Dir_Entry(Dir_Entry* de){
     if(de){
-         printf("----- DIR ENTRY INFO -----\n");
+        printf("----- DIR ENTRY INFO -----\n");
         printf("Filename:       %s\n", de->filename);
         printf("Creation Time:  %u\n", de->creation_time);
         printf("Creation Date:  %u\n", de->creation_date);

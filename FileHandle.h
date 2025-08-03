@@ -2,7 +2,9 @@
 #include "FS_info.h"
 #include "FAT_info.h"
 #include "DIR_Entry.h"
+#include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 typedef enum{
     PERM_WRITE = 1,
     PERM_READ = 2,
@@ -10,8 +12,13 @@ typedef enum{
     PERM_NO = 0
 }Permission;
 typedef struct{
-    Dir_Entry dir;
+    Dir_Entry* dir;
     uint32_t byte_offset;
     uint8_t open; //1 == OPEN, 0 == CLOSE;
     Permission permission;
 }FileHandle;
+
+FileHandle* make_FileHandle(Dir_Entry* );
+int fill_FileHandle(FileHandle*);
+void free_FileHandle(FileHandle*);
+void print_FileHandle(FileHandle*);
