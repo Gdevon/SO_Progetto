@@ -17,4 +17,8 @@ typedef struct {
     uint16_t modify_date;
     uint16_t first_block;
     uint32_t file_size;
-} Dir_Entry;
+} Dir_Entry; //struct di 32 byte
+Dir_Entry* make_Dir_Entry();
+int fill_Dir_Entry(Dir_Entry*);
+void free_Dir_Entry();
+void print_Dir_Entry(Dir_Entry*);

@@ -1,8 +1,8 @@
 CC=gcc
 CCOPTS=--std=gnu99 -Wall -g 
 AR = ar
-OBJS=test.o 
-HEADERS=FileHandle.h FAT_info.h DIR_info.h DirHandle.h FS_info.h
+OBJS=test.o DIR_Entry.o
+HEADERS=FileHandle.h FAT_info.h DIR_Entry.h DirHandle.h FS_info.h
 LIBS=libtest.a 
 BINS = test 
 .phony: clean all
