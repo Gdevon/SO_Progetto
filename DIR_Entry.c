@@ -5,7 +5,7 @@
 Dir_Entry* make_Dir_Entry(){
     Dir_Entry* de = (Dir_Entry*)malloc(sizeof(Dir_Entry));
     if(de) return de;
-    perror("Errore di Allocazione Dir_Entry");
+    printf("Errore di Allocazione Dir_Entry\n");
     return NULL;
 }
 int fill_Dir_Entry(Dir_Entry* de){
@@ -26,7 +26,7 @@ int fill_Dir_Entry(Dir_Entry* de){
     }
 }
 void print_Dir_Entry(Dir_Entry* de){
-    if(de){
+    if(de && de->access_date > 0){
         printf("----- DIR ENTRY INFO -----\n");
         printf("Filename:       %s\n", de->filename);
         printf("Creation Time:  %u\n", de->creation_time);
@@ -38,7 +38,7 @@ void print_Dir_Entry(Dir_Entry* de){
         printf("File Size:      %u bytes\n", de->file_size);
         printf("--------------------------\n");
     }else{
-        puts("Impossibile stampare, de non esistente");
+        puts("Impossibile stampare, de non esistente o vuota");
     }
 }
 void free_Dir_Entry(Dir_Entry* de){

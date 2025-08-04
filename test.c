@@ -18,7 +18,7 @@ int main(int argc, char* argv[]){
         printf("DIMENSIONE DIR ENTRY: %zu bytes, DEVE ESSERE : %d", sizeof(Dir_Entry), DIR_ENTRY_SIZE);
         puts("");
     */
-        puts("ALLOCO UN DIRENTRY E STAMPO A MANO");
+    /*    puts("ALLOCO UN DIRENTRY E STAMPO A MANO");
         Dir_Entry* de = make_Dir_Entry();
         if(fill_Dir_Entry(de) <= 0){
             perror("Errore riempimento campi de");
@@ -42,4 +42,35 @@ int main(int argc, char* argv[]){
         free_FileHandle(fh);
         free_FileHandle(fh2);
         free_Dir_Entry(de);
-    }
+        */
+    //Testo creazione con NULL passato come parametro
+    //Dir_Entry* de = make_Dir_Entry();
+    //if(!de) return -1;
+    //print_Dir_Entry(de);
+    //FileHandle* fh = make_FileHandle((Dir_Entry*)NULL);
+    //if(!fh) return -1;
+    //Dir_Entry* de = make_Dir_Entry();
+    //if(!de) printf("de non inizializzata correttamente\n");
+    //fill_Dir_Entry(de);
+    //print_Dir_Entry(de);
+    //FileHandle* fh = make_FileHandle(de);
+    //if(fill_FileHandle(fh) < 0) return 0;
+    //printf("Prima free fh\n");
+    //free_FileHandle(&fh);
+    //printf("Seconda free fh\n");
+    //free_FileHandle(&fh); //doppia free
+    //free_Dir_Entry(de);
+    //Dir_Entry* de = make_Dir_Entry();
+    //if(fill_Dir_Entry(de) < 0 ) return 0;
+    //FileHandle* handles[10];
+    //for (int i = 0; i < 10; i++) {
+    //    handles[i] = make_FileHandle(de);
+    //    if (!handles[i] || !fill_FileHandle(handles[i])) {
+    //        printf("Errore riempimento handle %d\n", i);
+    //    }
+    //}
+    //for (int i = 0; i < 10; i++) {
+    //    free_FileHandle(&handles[i]);
+    //}
+    //free_Dir_Entry(de);
+}

@@ -20,5 +20,5 @@ typedef struct{
 
 FileHandle* make_FileHandle(Dir_Entry* );
 int fill_FileHandle(FileHandle*);
-void free_FileHandle(FileHandle*);
+void free_FileHandle(FileHandle**);
 void print_FileHandle(FileHandle*);
