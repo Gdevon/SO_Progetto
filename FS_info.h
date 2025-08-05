@@ -11,10 +11,6 @@
 #define ROOT_DIR_BLOCKS 32            
 #define DATA_START_BLOCK (BOOT_SECTOR_BLOCKS + FAT_BLOCKS + ROOT_DIR_BLOCKS) 
 #define DATA_BLOCKS (TOTAL_BLOCKS - DATA_START_BLOCK)
-typedef FileSystem Filesystem;
-int disk_creat(char* disk_name,uint32_t size);
-int disk_mount(FileSystem* fs,char* disk_name);
-void disk_op_error_print(int err);
 typedef struct {
     int fd;
     uint8_t* disk;
@@ -23,3 +19,7 @@ typedef struct {
     uint8_t* data;
     uint8_t mounted;
 } FileSystem;
+int disk_creat(char* disk_name,uint32_t size);
+int disk_mount(FileSystem* fs,char* disk_name);
+void disk_op_error_print(int err);
+

@@ -19,15 +19,46 @@
 #define DISK_UNMOUNT_MUNMAP_FAIL -8
 #define DISK_UNMOUNT_CLOSE_FAIL -9
 #define DISK_MOUNTED -10
-void disk_op_error_print(int err){ //DA SISTEMARE
-    if(err == DISK_CREAT_CLOSE_FAIL){
-        //
-    }else if(err == DISK_MOUNT_OPEN_FAIL){
-        printf("Mount del disco fallita");
-    }else if(err == DISK_CREAT_MUNMAP_FAIL){//mai chiamata
-        printf("Unmap senza successo");
-    }else if(err == TRUNC_ERR){
-        printf("ftruncate senza successo");//mai chiamata
+#define DISK_MOUNT_CLOSE_FAIL -11
+#define DISK_UNMOUNTED -12
+void disk_op_error_print(int err) {
+    switch (err) {
+        case TRUNC_ERR:
+            printf("Errore: ftruncate non ha avuto successo\n");
+            break;
+        case DISK_CREAT_CLOSE_FAIL:
+            printf("Errore: close non ha avuto successo\n");
+            break;
+        case DISK_CREAT_OPEN_FAIL:
+            printf("Errore: apertura del file in creat non riuscita\n");
+            break;
+        case DISK_CREAT_MUNMAP_FAIL:
+            printf("Errore: unmapping del disco in creat non riuscito\n");
+            break;
+        case DISK_CREAT_MMAP_FAIL:
+            printf("Errore: mmap del disco in creat non riuscita\n");
+            break;
+        case DISK_MOUNT_OPEN_FAIL:
+            printf("Errore: apertura file in mount non riuscita\n");
+            break;
+        case DISK_MOUNT_MMAP_FAIL:
+            printf("Errore: mmap durante il mount non riuscito\n");
+            break;
+        case DISK_UNMOUNT_MUNMAP_FAIL:
+            printf("Errore: unmapping durante l'unmount non riuscito\n");
+            break;
+        case DISK_UNMOUNT_CLOSE_FAIL:
+            printf("Errore: close durante l'unmount non riuscito\n");
+            break;
+        case DISK_MOUNTED:
+            printf("Errore: il file system è già montato\n");
+            break;
+        case DISK_MOUNT_CLOSE_FAIL:
+            printf("Errore nella chiusura del file in mount\n");
+            break;
+        default:
+            printf("Errore sconosciuto: %d\n", err);
+            break;
     }
 }
 int disk_creat(char* disk_name, uint32_t size){
@@ -35,24 +66,24 @@ int disk_creat(char* disk_name, uint32_t size){
         printf("size [%u] non corrispondente a DISK_SIZE: [%u]\n",size,DISK_SIZE);
         return -1;
     }
-    int fd = open(disk_name,O_RDWR|O_CREAT|O_EXCL|O_TRUNC,0666);//o_excl serve a bloccare una doppia esecuzione del test
+    int fd = open(disk_name,O_RDWR|O_CREAT|O_EXCL|O_TRUNC,0666);
     if(fd < 0){
-        printf("Errore nell'apertura del file per mmappare il disco\n");
+        disk_op_error_print(DISK_CREAT_OPEN_FAIL);
         return DISK_CREAT_OPEN_FAIL;
     }
     if(ftruncate(fd,DISK_SIZE)<0){
-        printf("ftruncate non ha avuto successo, file non troncato\n");
+        disk_op_error_print(TRUNC_ERR);
         if(close(fd)<0){
-            printf("close dopo ftruncate non ha avuto successo\n");
+            disk_op_error_print(DISK_CREAT_CLOSE_FAIL);
             return DISK_CREAT_CLOSE_FAIL;
         }
         return TRUNC_ERR;
     }
     uint8_t* disk = (uint8_t*)mmap(NULL,DISK_SIZE,PROT_READ|PROT_WRITE|PROT_EXEC,MAP_SHARED,fd,0);
     if(disk == MAP_FAILED){
-        printf("mmap non ha avuto successo\n");
+        disk_op_error_print(DISK_CREAT_MMAP_FAIL);
         if(close(fd) < 0 ){
-            printf("close dopo mmap non ha avuto successo");
+            disk_op_error_print(DISK_CREAT_CLOSE_FAIL);
             return DISK_CREAT_CLOSE_FAIL;
         }
         return DISK_CREAT_MMAP_FAIL;
@@ -68,11 +99,11 @@ int disk_creat(char* disk_name, uint32_t size){
     uint8_t* data = (uint8_t*)(disk+(BLOCK_SIZE*DATA_START_BLOCK));
     memset(data,0,BLOCK_SIZE*DATA_BLOCKS);//PULISCO SEZIONE DATI
     if(munmap(disk,DISK_SIZE) < 0){
-        printf("Errore unmapping\n");
+        disk_op_error_print(DISK_CREAT_MUNMAP_FAIL);
         return DISK_CREAT_MUNMAP_FAIL;
     }
     if(close(fd)<0){
-        printf("Close finale senza successo");
+        disk_op_error_print(DISK_CREAT_CLOSE_FAIL);
         return DISK_CREAT_CLOSE_FAIL;
     }
     return 1;
@@ -90,6 +121,10 @@ int disk_mount(FileSystem* fs, char* disk_n){
     uint8_t* disk =(uint8_t*) mmap(NULL, DISK_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if(disk == MAP_FAILED){
         disk_op_error_print(DISK_MOUNT_MMAP_FAIL);
+        if(close(fd) < 0){
+            disk_op_error_print(DISK_MOUNT_CLOSE_FAIL);
+            return DISK_MOUNT_CLOSE_FAIL;
+        }
         return DISK_MOUNT_MMAP_FAIL;
     }
     fs->fd = fd;
@@ -100,6 +135,10 @@ int disk_mount(FileSystem* fs, char* disk_n){
     return 1;
 }
 int disk_unmount(FileSystem* fs){
+    if(fs->mounted == 0){
+        disk_op_error_print(DISK_UNMOUNTED);
+        return DISK_MOUNTED;
+    }
     if( (munmap(fs->disk,DISK_SIZE))<0){
         disk_op_error_print(DISK_UNMOUNT_MUNMAP_FAIL);
         return DISK_UNMOUNT_MUNMAP_FAIL;
