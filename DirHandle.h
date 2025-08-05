@@ -1,7 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include "FS_info.h"
-#include "FAT_info.h"
 #include "DIR_Entry.h"
 typedef struct {
     Dir_Entry* entries;    

@@ -1,12 +1,9 @@
 #pragma once
 #include <stdint.h>
 #include <time.h>
-#include "FS_info.h"
-#include "FAT_info.h"
-
 #define FILENAME_LEN 128 //lunghezza massima nome file
 #define DIR_ENTRY_SIZE 32 
-#define ENTRIES_PER_BLOCK (BLOCK_SIZE / DIR_ENTRY_SIZE)
+#define ENTRIES_PER_BLOCK (512 / DIR_ENTRY_SIZE) //512 sarebbe block size ma includendo fs_info mi dava errore...
 
 typedef struct {
     char filename[16];         

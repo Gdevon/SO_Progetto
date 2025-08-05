@@ -1,7 +1,7 @@
 CC=gcc
 CCOPTS=--std=gnu99 -Wall -g 
 AR = ar
-OBJS=test.o DIR_Entry.o FileHandle.o
+OBJS=test.o DIR_Entry.o FileHandle.o FS_info.o
 HEADERS=FileHandle.h FAT_info.h DIR_Entry.h DirHandle.h FS_info.h
 LIBS=libtest.a 
 BINS = test 
@@ -15,4 +15,4 @@ test: test.c $(LIBS)
 	$(CC) $(CCOPTS) -o $@ $^
 clean:
 	@echo "rimuovo i .o"
-		rm -rf *.o *~ $(LIBS) $(BINS)
+		rm -rf *.o *.fs *~ $(LIBS) $(BINS)

@@ -1,10 +1,9 @@
 #pragma once
-#include "FS_info.h"
-#include "FAT_info.h"
-#include "DIR_Entry.h"
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "FAT_info.h"
+#include "DIR_Entry.h"
 typedef enum{
     PERM_WRITE = 1,
     PERM_READ = 2,

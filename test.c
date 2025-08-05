@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "FAT_info.h"
 #include "FS_info.h"
 #include "FileHandle.h"
 #include "DirHandle.h"
+#include "FS_info.h"
 #include "DIR_Entry.h"
+
 int main(int argc, char* argv[]){
     /*    puts("TEST DIMENSIONI ");
         printf(" BLOCK_SIZE: %d\n", SIZE_BLOCK);
@@ -73,4 +76,14 @@ int main(int argc, char* argv[]){
     //    free_FileHandle(&handles[i]);
     //}
     //free_Dir_Entry(de);
+
+    //Creazione disco
+    if(disk_creat("mydisk.fs",DISK_SIZE) != 1){ //.fs per aggiungere *.fs nella clean del makefile
+        printf("non riesco a creare il disco, disk_creat senza successo\n");
+        return -1;
+    }
+    else{
+        printf("Disco creato\n");
+    }
+    
 }
