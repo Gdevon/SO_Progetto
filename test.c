@@ -76,14 +76,27 @@ int main(int argc, char* argv[]){
     //    free_FileHandle(&handles[i]);
     //}
     //free_Dir_Entry(de);
-
-    //Creazione disco
-    if(disk_creat("mydisk.fs",DISK_SIZE) != 1){ //.fs per aggiungere *.fs nella clean del makefile
-        printf("non riesco a creare il disco, disk_creat senza successo\n");
+    FileSystem* fs = fs_init();
+    if(disk_creat("mydisk.fs", DISK_SIZE) < 0){
         return -1;
     }
-    else{
-        printf("Disco creato\n");
+    if(disk_mount(fs,"mydisk.fs") < 0){
+        return -1;
     }
-    
+    printf("fs montato:  %d\n", fs->mounted);
+    if(disk_mount(fs,"mydisk.fs") > 0){
+        printf("Errore: ho appena montato di nuovo il fs su mydisk\n");
+        return -1;
+    }
+    printf("bloccato tentativo di mount doppio\n");
+    if(disk_unmount(fs) < 0){
+        return -1;
+    }
+    if(disk_unmount(fs) > 0){
+        printf("doppio unmount\n");
+        return -1;
+    }
+    printf("bloccato tentativo di un,mount doppio\n");
+    fs_free(&fs);
+    return 1;
 }

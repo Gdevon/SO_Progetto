@@ -21,5 +21,7 @@ typedef struct {
 } FileSystem;
 int disk_creat(char* disk_name,uint32_t size);
 int disk_mount(FileSystem* fs,char* disk_name);
+int disk_unmount(FileSystem*);
 void disk_op_error_print(int err);
-
+FileSystem* fs_init();
+void fs_free(FileSystem**);

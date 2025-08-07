@@ -21,6 +21,7 @@
 #define DISK_MOUNTED -10
 #define DISK_MOUNT_CLOSE_FAIL -11
 #define DISK_UNMOUNTED -12
+#define FS_ALLOC_FAIL -13
 void disk_op_error_print(int err) {
     switch (err) {
         case TRUNC_ERR:
@@ -55,6 +56,12 @@ void disk_op_error_print(int err) {
             break;
         case DISK_MOUNT_CLOSE_FAIL:
             printf("Errore nella chiusura del file in mount\n");
+            break;
+        case DISK_UNMOUNTED:
+            printf("Errore nell'unmounting del disco\n");
+            break;
+        case FS_ALLOC_FAIL:
+            printf("Errore nell'allocazione del fs\n");
             break;
         default:
             printf("Errore sconosciuto: %d\n", err);
@@ -106,6 +113,7 @@ int disk_creat(char* disk_name, uint32_t size){
         disk_op_error_print(DISK_CREAT_CLOSE_FAIL);
         return DISK_CREAT_CLOSE_FAIL;
     }
+    printf("Disk_creat ha avuto successo\n");
     return 1;
 }
 int disk_mount(FileSystem* fs, char* disk_n){
@@ -132,12 +140,13 @@ int disk_mount(FileSystem* fs, char* disk_n){
     fs->fat = (uint16_t*)(disk+(BLOCK_SIZE*BOOT_SECTOR_BLOCKS));//B_S_B è 1 inrealtà
     fs->root_dir = (Dir_Entry*)(disk+BLOCK_SIZE*(FAT_BLOCKS+BOOT_SECTOR_BLOCKS));
     fs->mounted = 1;
+    printf("Disk_Mount ha avuto successo\n");
     return 1;
 }
 int disk_unmount(FileSystem* fs){
     if(fs->mounted == 0){
         disk_op_error_print(DISK_UNMOUNTED);
-        return DISK_MOUNTED;
+        return DISK_UNMOUNTED;
     }
     if( (munmap(fs->disk,DISK_SIZE))<0){
         disk_op_error_print(DISK_UNMOUNT_MUNMAP_FAIL);
@@ -152,5 +161,32 @@ int disk_unmount(FileSystem* fs){
     fs->root_dir = NULL;
     fs->fd = -1;
     fs->mounted = 0;
+    printf("Disk_Unmount ha avuto successo\n");
     return 1;
+}
+FileSystem* fs_init(){
+    FileSystem* fs = (FileSystem*)malloc(sizeof(FileSystem));
+    if(fs){
+        fs->fd = -1;
+        fs->data = NULL;
+        fs->disk = NULL;
+        fs->fat = NULL;
+        fs->root_dir = NULL;
+        fs->mounted = 0;
+        return fs;
+    }
+    disk_op_error_print(FS_ALLOC_FAIL);
+    return NULL;
+}
+void fs_free(FileSystem** fs){
+    if(*fs){
+        (*fs)->fd = -1;
+        (*fs)->data = NULL;
+        (*fs)->disk = NULL;
+        (*fs)->fat = NULL;
+        (*fs)->root_dir = NULL;
+        (*fs)->mounted = 0;
+        free(*fs);
+        printf("free fs\n");
+    }
 }
