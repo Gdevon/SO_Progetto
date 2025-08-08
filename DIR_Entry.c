@@ -1,31 +1,36 @@
-#include "DIR_Entry.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <stdlib.h>
 
-Dir_Entry* make_Dir_Entry(){
-    Dir_Entry* de = (Dir_Entry*)malloc(sizeof(Dir_Entry));
-    if(de) return de;
-    printf("Errore di Allocazione Dir_Entry\n");
-    return NULL;
-}
-int fill_Dir_Entry(Dir_Entry* de){
-    if(de){
-    de->access_date = (uint16_t) 20250802;
-    de->creation_date = (uint16_t) 20250802;
-    de->creation_time = (uint16_t) 20250802;
-    de->file_size = (uint16_t) 20000;
-    de->first_block = (0xFA);
-    de->modify_date = (uint16_t) 20250802;
-    de->modify_time = (uint16_t) 20250802;
-    strcpy(de->filename,"nomeprova.txt");
-    return 1;
+#include "DIR_Entry.h"
+#include "Errors.h"
+#include "FS_info.h"
+#define NO_FREE_ENTRY -1
+
+void create_Dir_Entry(Dir_Entry* free_entry, char*filename, uint16_t start, int type){
+    if(type == 1){
+        printf("Sto creando una entry per un file\n");
     }
     else{
-        puts("Impossibile riempire, de non presente");
-        return 0;
+        printf("Sto creando una entry per una dir");
     }
+    memset(free_entry,0,sizeof(Dir_Entry));
+    strcpy(free_entry->filename, filename);
+    free_entry -> filename[14] = '\0';
+    free_entry->first_block = start;
+    free_entry->file_size = 0;
+    free_entry->is_dir = type;
+    //setto l'orario -- presa da stackoverflow
+   time_t now = time(NULL);
+   free_entry->creation_time = time_to_uint16(now);
+   free_entry->modify_time = free_entry->creation_time;
+   //uguale per la data
+   free_entry->creation_date = date_to_uint16(now);
+   free_entry->access_date = free_entry->creation_date;
+   free_entry->modify_date = free_entry->creation_date;
 }
+
 void print_Dir_Entry(Dir_Entry* de){
     if(de && de->access_date > 0){
         printf("----- DIR ENTRY INFO -----\n");
@@ -47,4 +52,40 @@ void free_Dir_Entry(Dir_Entry* de){
         free(de);
     }
     de = NULL;
+}
+Dir_Entry* find_free_Dir_Entry(FileSystem* fs){
+    for(int i=0; i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
+        if(fs->root_dir[i].file_size == 0){
+            return &fs->root_dir[i];
+        }
+    }
+    print_error(NO_FREE_ENTRY); //da implementare
+    return NULL;
+}
+void print_error_Dir_En(int err){
+
+    if(err == NO_FREE_ENTRY){
+        printf("Non ho trovato entries libere\n");
+    }
+}
+
+
+uint16_t time_to_uint16(time_t timestamp) {
+    struct tm *tm_info = localtime(&timestamp);
+    return (uint16_t)(tm_info->tm_hour * 3600 + tm_info->tm_min * 60 + tm_info->tm_sec);
+}
+void print_time(uint16_t t){
+    int ore = t / 3600;
+    int minuti = (t % 3600) / 60;
+    int secondi = t % 60;
+    printf("Orario: %02d:%02d:%02d\n",ore,minuti,secondi);
+}
+
+uint16_t date_to_uint16(time_t timestamp) {
+    return (uint16_t)(timestamp / 86400);
+}
+void print_date(uint16_t date){
+    time_t t = (time_t)date*86400;
+    struct tm *tm_info = localtime(&t);
+    printf("%02d-%02d-%04d",tm_info->tm_mon + 1, tm_info->tm_mday,tm_info->tm_year + 1900);
 }

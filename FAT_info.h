@@ -7,3 +7,5 @@
 #define FAT_FREE_BLOCK 0x0000
 #define FAT_BLOCK_END 0xFFFF //fine catena blocchi file
 #define FAT_BAD -1
+
+uint16_t find_free_FAT_block(FileSystem* );

@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "Errors.h"
 #include "DIR_Entry.h"
 #define BLOCK_SIZE 512                //512byte per ogni blocco
 #define DISK_SIZE (32 * 1024 * 1024)  //32mb didisco
@@ -11,17 +12,19 @@
 #define ROOT_DIR_BLOCKS 32            
 #define DATA_START_BLOCK (BOOT_SECTOR_BLOCKS + FAT_BLOCKS + ROOT_DIR_BLOCKS) 
 #define DATA_BLOCKS (TOTAL_BLOCKS - DATA_START_BLOCK)
-typedef struct {
+
+//struct Dir_Entry Dir_Entry;
+struct FileSystem{
     int fd;
     uint8_t* disk;
     uint16_t* fat;
     Dir_Entry* root_dir;
     uint8_t* data;
     uint8_t mounted;
-} FileSystem;
+};
+typedef struct FileSystem FileSystem;
 int disk_creat(char* disk_name,uint32_t size);
 int disk_mount(FileSystem* fs,char* disk_name);
 int disk_unmount(FileSystem*);
-void disk_op_error_print(int err);
 FileSystem* fs_init();
 void fs_free(FileSystem**);

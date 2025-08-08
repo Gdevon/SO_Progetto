@@ -1,24 +1,46 @@
+#include <stdio.h>
+#include <string.h>
+#include "Errors.h"
 #include "FileHandle.h"
 #include "DIR_Entry.h"
-FileHandle* make_FileHandle(Dir_Entry* de){
-    if(!de){
-        printf("Non posso inizializzare fh con NULL pointer\n");
-        return NULL;
-    }else{
-        if(de->creation_date <= 0){
-            printf("de è priva di informazioni, riempio\n");
-            fill_Dir_Entry(de);
-        }
-        FileHandle* fh = (FileHandle*)malloc(sizeof(FileHandle));
-        if(fh != NULL && de != NULL){
-            fh->dir = de;
-            return fh;
-        }
-        printf("Errore nella creazione di fh");
+#include "FS_info.h"
+
+FileHandle* create_FileHandle(FileSystem* fs, char* filename){
+    if(fs->mounted == 0){
+        print_error(DISK_UNMOUNTED);
         return NULL;
     }
+    if(check_filename(filename) < 0){
+        print_error(LONG_NAME);
+        return NULL;
+    }
+    // da fare:devo controllare se il file esiste gia -check_duplicates()
+    Dir_Entry* free_entry = find_free_Dir_Entry(fs);
+    if(!free_entry){
+        print_error(FULL_DIR);
+        return NULL;
+    }
+    uint16_t free_fat = find_free_FAT_block(fs);
+    if(free_fat == FAT_BLOCK_END){
+        print_error(FULL_FAT);
+        return NULL;
+    }
+    fs->fat[free_fat] = FAT_BLOCK_END;
+    create_Dir_Entry(free_entry,filename,free_fat,is_dir(filename));
+    FileHandle* fh = (FileHandle*)malloc(sizeof(FileHandle));
+    if(!fh){
+        print_error(FH_ALLOC_FAIL);
+        return NULL;
+    }
+    fh->dir = free_entry;
+    fh->byte_offset = 0;
+    fh->open = 1;
+    fh->permission = PERM_WRITE;
+    return fh;
 }
-int fill_FileHandle(FileHandle* fh){
+
+
+/*int fill_FileHandle(FileHandle* fh){
     if(fh){
         fh->byte_offset = 1020; //valori random
         fh->open = 1;
@@ -29,7 +51,7 @@ int fill_FileHandle(FileHandle* fh){
         printf("Impossibile riempire fh vuota\n");
         return 0;
     }
-}
+}*/
 void free_FileHandle(FileHandle** fh){
     if(*fh && fh){
         //free_Dir_Entry((*fh)->dir);
@@ -55,5 +77,16 @@ void print_FileHandle(FileHandle* fh){
     }
     else{
         printf("FileHandle non aperto\n");
+    }
+}
+int is_dir(char* filename){
+    if(strstr(filename,".")) return 1; // è un file se contiene .
+    else return 0; //cartella se non contiene .
+}
+int check_filename(char* filename){
+    if(strlen(filename) > 14){
+        return -1;
+    }else{
+        return 1;
     }
 }
