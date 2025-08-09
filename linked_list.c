@@ -106,4 +106,5 @@ void List_print(ListHead* head) {
     item=item->next;
     ++k;
   }
+  printf("\n");
 }

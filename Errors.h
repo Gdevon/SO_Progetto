@@ -20,4 +20,7 @@
 //errrore nome troppo lungo
 #define LONG_NAME -16
 #define FH_ALLOC_FAIL -17
+#define FH_FREE_FAIL -19
+#define FH_NOTOPEN -20
+#define FILE_DUPLICATE -18
 void print_error(int);

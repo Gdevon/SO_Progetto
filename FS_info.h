@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "Errors.h"
 #include "DIR_Entry.h"
+#include "linked_list.h"
 #define BLOCK_SIZE 512                //512byte per ogni blocco
 #define DISK_SIZE (32 * 1024 * 1024)  //32mb didisco
 #define TOTAL_BLOCKS (DISK_SIZE / BLOCK_SIZE) 
@@ -21,6 +22,7 @@ struct FileSystem{
     Dir_Entry* root_dir;
     uint8_t* data;
     uint8_t mounted;
+    ListHead handles;
 };
 typedef struct FileSystem FileSystem;
 int disk_creat(char* disk_name,uint32_t size);

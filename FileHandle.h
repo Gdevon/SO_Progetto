@@ -17,9 +17,9 @@ typedef struct{
     Permission permission;
 }FileHandle;
 
-FileHandle* create_FileHandle(FileSystem *, char* );
-int fill_FileHandle(FileHandle*);
-void free_FileHandle(FileHandle**);
-void print_FileHandle(FileHandle*);
+FileHandle* FileHandle_create(FileSystem *, char* );
+void FileHandle_free(FileSystem* ,FileHandle*);
+void FileHandle_print(FileHandle*);
 int check_filename(char* filename);
 int is_dir(char*);
+int check_duplicates(FileSystem*,char*);

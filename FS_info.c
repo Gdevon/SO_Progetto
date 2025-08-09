@@ -84,6 +84,7 @@ int disk_mount(FileSystem* fs, char* disk_n){
     fs->fat = (uint16_t*)(disk+(BLOCK_SIZE*BOOT_SECTOR_BLOCKS));//B_S_B è 1 inrealtà
     fs->root_dir = (Dir_Entry*)(disk+BLOCK_SIZE*(FAT_BLOCKS+BOOT_SECTOR_BLOCKS));
     fs->mounted = 1;
+    List_init(&fs->handles);
     printf("Disk_Mount ha avuto successo\n");
     return 1;
 }
@@ -92,6 +93,13 @@ int disk_unmount(FileSystem* fs){
         print_error(DISK_UNMOUNTED);
         return DISK_UNMOUNTED;
     }
+    ListItem* current = fs->handles.first;
+    while(current){
+        ListItem *next = current->next;
+        ListItem_destroy(current);
+        current = next;
+    }
+    List_init(&fs->handles);
     if( (munmap(fs->disk,DISK_SIZE))<0){
         print_error(DISK_UNMOUNT_MUNMAP_FAIL);
         return DISK_UNMOUNT_MUNMAP_FAIL;

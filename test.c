@@ -8,7 +8,8 @@
 #include "DirHandle.h"
 #include "FS_info.h"
 #include "DIR_Entry.h"
-
+int test_filehandle();
+int test_duplicate_name();
 int main(int argc, char* argv[]){
     /*    puts("TEST DIMENSIONI ");
         printf(" BLOCK_SIZE: %d\n", SIZE_BLOCK);
@@ -76,7 +77,7 @@ int main(int argc, char* argv[]){
     //    free_FileHandle(&handles[i]);
     //}
     //free_Dir_Entry(de);
-    FileSystem* fs = fs_init();
+    /*FileSystem* fs = fs_init();
     if(disk_creat("mydisk.fs", DISK_SIZE) < 0){
         return -1;
     }
@@ -98,5 +99,89 @@ int main(int argc, char* argv[]){
     }
     printf("bloccato tentativo di un,mount doppio\n");
     fs_free(&fs);
+    return 1;*/
+    int test;
+    test = test_filehandle();
+    if(test < 0){
+        printf("Test_filehandle fallito\n");
+        return -1;
+    }
+ 
+}
+
+#include "FS_info.h"
+#include "FileHandle.h"
+#include "DirHandle.h"
+#include "ListHandle.h"
+#include <stdio.h>
+
+#include "FS_info.h"
+#include "FileHandle.h"
+#include "DirHandle.h"
+#include "ListHandle.h"
+#include <stdio.h>
+
+int test_filehandle() {
+    FileSystem* fs = fs_init();
+    if (!fs) {
+        return -1;
+    }
+    if (disk_creat("mydisk.fs", DISK_SIZE) < 0) {
+        fs_free(&fs);
+        return -1;
+    }
+    if (disk_mount(fs, "mydisk.fs") < 0) {
+        fs_free(&fs);
+        return -1;
+    }
+
+    FileHandle* fh1 = FileHandle_create(fs, "file1.txt");
+    if (!fh1) {
+        disk_unmount(fs);
+        return -1;
+    }
+    FileHandle* fh2 = FileHandle_create(fs, "file2.txt");
+    if (!fh2) {
+        disk_unmount(fs);
+        return -1;
+    }
+    if (fs->handles.size != 2) {
+        printf("Errore: dimensione lista handles non corretta (%d, atteso 2)\n", fs->handles.size);
+        disk_unmount(fs);
+        return -1;
+    }
+    printf("Lista handles dopo creazione di due FileHandle:\n");
+    List_print(&fs->handles);
+
+    FileHandle_free(fs, fh1);
+    if (fs->handles.size != 1) {
+        printf("Errore: dimensione lista handles non corretta (%d, atteso 1)\n", fs->handles.size);
+        disk_unmount(fs);
+        return -1;
+    }
+    printf("Lista handles dopo chiusura di file1:\n");
+    List_print(&fs->handles);
+
+    FileHandle_free(fs, fh2);
+    if (fs->handles.size != 0) {
+        printf("Errore: dimensione lista handles non corretta (%d, atteso 0)\n", fs->handles.size);
+        disk_unmount(fs);
+        return -1;
+    }
+    printf("Lista handles dopo chiusura di file2:\n");
+    List_print(&fs->handles);
+
+    if (disk_unmount(fs) < 0) {
+        return -1;
+    }
+    if (fs->handles.size != 0) {
+        printf("Errore: lista handles non vuota dopo unmount (%d)\n", fs->handles.size);
+        return -1;
+    }
+    printf("Lista handles dopo unmount:\n");
+    List_print(&fs->handles);
+
+    fs_free(&fs);
+    printf("Test concluso con successo\n");
     return 1;
 }

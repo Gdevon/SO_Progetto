@@ -4,8 +4,9 @@
 #include "FileHandle.h"
 #include "DIR_Entry.h"
 #include "FS_info.h"
+#include "ListHandle.h"
 
-FileHandle* create_FileHandle(FileSystem* fs, char* filename){
+FileHandle* FileHandle_create(FileSystem* fs, char* filename){
     if(fs->mounted == 0){
         print_error(DISK_UNMOUNTED);
         return NULL;
@@ -14,19 +15,23 @@ FileHandle* create_FileHandle(FileSystem* fs, char* filename){
         print_error(LONG_NAME);
         return NULL;
     }
-    // da fare:devo controllare se il file esiste gia -check_duplicates()
-    Dir_Entry* free_entry = find_free_Dir_Entry(fs);
+    if(check_duplicates(fs,filename) < 0){
+        print_error(FILE_DUPLICATE);
+        return NULL;
+    }
+    Dir_Entry* free_entry = Dir_Entry_find_free(fs);
     if(!free_entry){
         print_error(FULL_DIR);
         return NULL;
     }
-    uint16_t free_fat = find_free_FAT_block(fs);
+    uint16_t free_fat = FAT_find_free_block(fs);
     if(free_fat == FAT_BLOCK_END){
         print_error(FULL_FAT);
         return NULL;
     }
     fs->fat[free_fat] = FAT_BLOCK_END;
-    create_Dir_Entry(free_entry,filename,free_fat,is_dir(filename));
+    int type = is_dir(filename);
+    Dir_Entry_create(free_entry,filename,free_fat,type);
     FileHandle* fh = (FileHandle*)malloc(sizeof(FileHandle));
     if(!fh){
         print_error(FH_ALLOC_FAIL);
@@ -36,44 +41,42 @@ FileHandle* create_FileHandle(FileSystem* fs, char* filename){
     fh->byte_offset = 0;
     fh->open = 1;
     fh->permission = PERM_WRITE;
+    Handle_Item* item = (Handle_Item*)malloc(sizeof(Handle_Item));
+    if(!item){
+        free(fh);
+        print_error(FS_ALLOC_FAIL);
+        return NULL;
+    }
+    Handle_Item_create(item,fh,FILE_HANDLE);
+    List_insert(&fs->handles,NULL,&item->h);
     return fh;
 }
 
 
-/*int fill_FileHandle(FileHandle* fh){
-    if(fh){
-        fh->byte_offset = 1020; //valori random
-        fh->open = 1;
-        fh->permission = 3;
-        return 1;
-    }
-    else{
-        printf("Impossibile riempire fh vuota\n");
-        return 0;
-    }
-}*/
-void free_FileHandle(FileHandle** fh){
-    if(*fh && fh){
-        //free_Dir_Entry((*fh)->dir);
-        (*fh)->byte_offset = 0;
-        (*fh)->open = 0;
-        (*fh)->permission = 0;
-        free(*fh);
-        *fh = NULL;
-        printf("free effettuata correttamente\n");
-    }else{
-        printf("Impossibile fare free di fh vuota\n");
-        return;
+void FileHandle_free(FileSystem* fs, FileHandle *fh){
+    if(!fs || !fh){
+        print_error(FH_FREE_FAIL);
+    }if(!fh->open){
+        print_error(FH_NOTOPEN);
+    }ListItem* current = fs->handles.first;
+    while(current){
+        Handle_Item *h_item = (Handle_Item*)current;
+        if(h_item->handle == fh){
+            List_detach(&fs->handles,current);
+            ListItem_destroy(current);
+            return;
+        }
+        current = current->next;
     }
 }
-void print_FileHandle(FileHandle* fh){
+void FileHandle_print(FileHandle* fh){
     if(fh->open == 1){
         printf("INFORMAZIONI FILEHANDLE %s\n", fh->dir->filename);
         printf("Byte offset: %u\n", fh->byte_offset);
         printf("Open : %u\n", fh->open);
         printf("Permission: %u\n", fh->permission);
         printf("----------------\n");
-        print_Dir_Entry(fh->dir);
+        Dir_Entry_print(fh->dir);
     }
     else{
         printf("FileHandle non aperto\n");
@@ -89,4 +92,14 @@ int check_filename(char* filename){
     }else{
         return 1;
     }
+}
+int check_duplicates(FileSystem* fs,char* filename){
+    for(int i = 0;i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
+        if(fs->root_dir[i].filename[0] != '\0'){
+            if(strcmp(fs->root_dir[i].filename,filename) == 0){
+                return -1;
+            }
+        }
+    }
+    return 1;
 }

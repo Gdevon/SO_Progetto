@@ -8,7 +8,7 @@
 #include "FS_info.h"
 #define NO_FREE_ENTRY -1
 
-void create_Dir_Entry(Dir_Entry* free_entry, char*filename, uint16_t start, int type){
+void Dir_Entry_create(Dir_Entry* free_entry, char*filename, uint16_t start, int type){
     if(type == 1){
         printf("Sto creando una entry per un file\n");
     }
@@ -31,7 +31,7 @@ void create_Dir_Entry(Dir_Entry* free_entry, char*filename, uint16_t start, int 
    free_entry->modify_date = free_entry->creation_date;
 }
 
-void print_Dir_Entry(Dir_Entry* de){
+void Dir_Entry_print(Dir_Entry* de){
     if(de && de->access_date > 0){
         printf("----- DIR ENTRY INFO -----\n");
         printf("Filename:       %s\n", de->filename);
@@ -47,13 +47,13 @@ void print_Dir_Entry(Dir_Entry* de){
         puts("Impossibile stampare, de non esistente o vuota");
     }
 }
-void free_Dir_Entry(Dir_Entry* de){
+void Dir_Entry_free(Dir_Entry* de){
     if(de){
         free(de);
     }
     de = NULL;
 }
-Dir_Entry* find_free_Dir_Entry(FileSystem* fs){
+Dir_Entry* Dir_Entry_find_free(FileSystem* fs){
     for(int i=0; i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
         if(fs->root_dir[i].file_size == 0){
             return &fs->root_dir[i];
@@ -62,12 +62,7 @@ Dir_Entry* find_free_Dir_Entry(FileSystem* fs){
     print_error(NO_FREE_ENTRY); //da implementare
     return NULL;
 }
-void print_error_Dir_En(int err){
 
-    if(err == NO_FREE_ENTRY){
-        printf("Non ho trovato entries libere\n");
-    }
-}
 
 
 uint16_t time_to_uint16(time_t timestamp) {

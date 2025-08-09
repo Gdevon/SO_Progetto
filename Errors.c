@@ -48,6 +48,9 @@ void print_error(int err){
         case FH_ALLOC_FAIL:
             printf("Errore allocazione FileHandle\n");
             break;
+        case FILE_DUPLICATE:
+            printf("Errore: è già presente un file con questo nome\n");
+            break;
         default:
             printf("Errore sconosciuto: %d\n", err);
             break;
