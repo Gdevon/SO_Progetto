@@ -24,6 +24,7 @@ void Dir_Entry_print(Dir_Entry*);
 Dir_Entry* Dir_Entry_find_free(FileSystem*);
 uint16_t time_to_uint16(time_t);
 void print_time(uint16_t );
-uint16_t date_to_uint16(time_t timestamp);
-void print_date(uint16_t date);
+uint16_t date_to_uint16(time_t );
+void print_date(uint16_t );
+int check_duplicates(FileSystem* ,char*);
 

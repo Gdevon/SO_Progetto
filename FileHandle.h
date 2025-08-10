@@ -20,6 +20,4 @@ typedef struct{
 FileHandle* FileHandle_create(FileSystem *, char* );
 void FileHandle_free(FileSystem* ,FileHandle*);
 void FileHandle_print(FileHandle*);
-int check_filename(char* filename);
 int is_dir(char*);
-int check_duplicates(FileSystem*,char*);

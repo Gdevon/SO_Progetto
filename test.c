@@ -5,11 +5,14 @@
 #include "FAT_info.h"
 #include "FS_info.h"
 #include "FileHandle.h"
-#include "DirHandle.h"
 #include "FS_info.h"
 #include "DIR_Entry.h"
+#include "ListHandle.h"
+#include "DirHandle.h"
+
 int test_filehandle();
 int test_duplicate_name();
+int test_dirhandle();
 int main(int argc, char* argv[]){
     /*    puts("TEST DIMENSIONI ");
         printf(" BLOCK_SIZE: %d\n", SIZE_BLOCK);
@@ -100,27 +103,17 @@ int main(int argc, char* argv[]){
     printf("bloccato tentativo di un,mount doppio\n");
     fs_free(&fs);
     return 1;*/
-    int test;
-    test = test_filehandle();
-    if(test < 0){
-        printf("Test_filehandle fallito\n");
-        return -1;
-    }
- 
+   int test;
+    //test = test_filehandle();
+    //if (test < 0) {
+    //    printf("Test_filehandle fallito\n");
+    //    return -1;
+    //}
+    //printf("Test_filehandle completato con successo!\n\n");
+    test = test_dirhandle();
+    if(test < 0 ) printf("Test dirhandle fallito");
+    return 1;
 }
-
-#include "FS_info.h"
-#include "FileHandle.h"
-#include "DirHandle.h"
-#include "ListHandle.h"
-#include <stdio.h>
-
-#include "FS_info.h"
-#include "FileHandle.h"
-#include "DirHandle.h"
-#include "ListHandle.h"
-#include <stdio.h>
-
 int test_filehandle() {
     FileSystem* fs = fs_init();
     if (!fs) {
@@ -183,5 +176,20 @@ int test_filehandle() {
 
     fs_free(&fs);
     printf("Test concluso con successo\n");
+    return 1;
+}
+int test_dirhandle(){
+    char disk[] = "mydisk.fs"; 
+    FileSystem* fs = fs_init();
+    if(!fs) return -1;
+    if(disk_creat(disk,DISK_SIZE) < 0) return -1; 
+    if(disk_mount(fs,disk) < 0) return -1;
+    DirHandle* dh = DirHandle_create(fs,"lamiacartella");
+    if(!dh) return -1;
+    DirHandle *dh2 = DirHandle_create(fs,"lamiacartella2");
+    if(!dh2) return -1;
+    List_print(&fs->handles);
+    if(disk_unmount(fs)<0) return -1;
+    fs_free(&fs);
     return 1;
 }

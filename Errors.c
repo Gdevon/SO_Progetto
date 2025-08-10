@@ -51,6 +51,18 @@ void print_error(int err){
         case FILE_DUPLICATE:
             printf("Errore: è già presente un file con questo nome\n");
             break;
+        case NO_FREE_ENTRY:
+            printf("Non ho trovato Dir_Entry libere\n");
+            break;
+        case DIR_DUPLICATE: 
+            printf(" E' già presente una cartella con questo nome\n");
+            break;
+        case DH_ALLOC_FAIL:
+            printf("Dh non allocata correttamente\n");
+            break;
+        case DH_NOTOPEN:
+            printf("Dh non è aperta\n");
+            break;
         default:
             printf("Errore sconosciuto: %d\n", err);
             break;

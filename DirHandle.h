@@ -7,4 +7,7 @@ typedef struct {
     uint32_t position;     
     uint16_t first_block;  
     uint8_t open;          
-} DirectoryHandle;
+} DirHandle;
+
+DirHandle* DirHandle_create(FileSystem* ,char*);
+void DirHandle_free(FileSystem* , DirHandle* );

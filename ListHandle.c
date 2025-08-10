@@ -16,7 +16,7 @@ void Handle_Item_destroy(ListItem* item){
         fh->open = 0;
         free(fh);
     }else{
-        DirectoryHandle* dh = (DirectoryHandle*) h->handle;
+        DirHandle* dh = (DirHandle*) h->handle;
         dh->open = 0;
         free(dh);
     }

@@ -11,7 +11,7 @@ FileHandle* FileHandle_create(FileSystem* fs, char* filename){
         print_error(DISK_UNMOUNTED);
         return NULL;
     }
-    if(check_filename(filename) < 0){
+    if(strlen(filename) > 14){
         print_error(LONG_NAME);
         return NULL;
     }
@@ -56,12 +56,14 @@ FileHandle* FileHandle_create(FileSystem* fs, char* filename){
 void FileHandle_free(FileSystem* fs, FileHandle *fh){
     if(!fs || !fh){
         print_error(FH_FREE_FAIL);
+        return;
     }if(!fh->open){
         print_error(FH_NOTOPEN);
+        return;
     }ListItem* current = fs->handles.first;
     while(current){
         Handle_Item *h_item = (Handle_Item*)current;
-        if(h_item->handle == fh){
+        if(h_item->handle == fh && h_item->type == FILE_HANDLE){
             List_detach(&fs->handles,current);
             ListItem_destroy(current);
             return;
@@ -86,20 +88,4 @@ int is_dir(char* filename){
     if(strstr(filename,".")) return 1; // è un file se contiene .
     else return 0; //cartella se non contiene .
 }
-int check_filename(char* filename){
-    if(strlen(filename) > 14){
-        return -1;
-    }else{
-        return 1;
-    }
-}
-int check_duplicates(FileSystem* fs,char* filename){
-    for(int i = 0;i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
-        if(fs->root_dir[i].filename[0] != '\0'){
-            if(strcmp(fs->root_dir[i].filename,filename) == 0){
-                return -1;
-            }
-        }
-    }
-    return 1;
-}
+
