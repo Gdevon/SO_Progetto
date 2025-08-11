@@ -30,3 +30,6 @@ int disk_mount(FileSystem* fs,char* disk_name);
 int disk_unmount(FileSystem*);
 FileSystem* fs_init();
 void fs_free(FileSystem**);
+int fs_write_block(FileSystem*,uint16_t,char*);
+int fs_read_block(FileSystem*,uint16_t,char*);
+size_t fs_explore_block(FileSystem*, uint16_t);

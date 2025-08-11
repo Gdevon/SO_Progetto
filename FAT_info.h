@@ -9,3 +9,4 @@
 #define FAT_BAD -1
 
 uint16_t FAT_find_free_block(FileSystem* );
+uint16_t FAT_find_next_block(FileSystem*, uint16_t);

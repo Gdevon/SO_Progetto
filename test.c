@@ -13,105 +13,13 @@
 int test_filehandle();
 int test_duplicate_name();
 int test_dirhandle();
+int test_write_read();
+int test_explore_block();
+int test_filehandle_write();
 int main(int argc, char* argv[]){
-    /*    puts("TEST DIMENSIONI ");
-        printf(" BLOCK_SIZE: %d\n", SIZE_BLOCK);
-        printf(" DIR_ENTRY_SIZE: %d\n", DIR_ENTRY_SIZE);
-        printf(" ENTRIES_PER_BLOCK: %d\n", TOTAL_BLOCKS);
-        printf(" TOTAL_BLOCKS: %d\n", TOTAL_BLOCKS);
-        printf(" DATA_BLOCKS: %d\n", DATA_BLOCKS);
-        printf(" FAT_BLOCKS: %d\n", FAT_BLOCKS);
-        printf(" FAT_ENTRIES possibili (DATA_BLOCKS): %d\n", DATA_BLOCKS);
-        printf("DIMENSIONE DIR ENTRY: %zu bytes, DEVE ESSERE : %d", sizeof(Dir_Entry), DIR_ENTRY_SIZE);
-        puts("");
-    */
-    /*    puts("ALLOCO UN DIRENTRY E STAMPO A MANO");
-        Dir_Entry* de = make_Dir_Entry();
-        if(fill_Dir_Entry(de) <= 0){
-            perror("Errore riempimento campi de");
-            return 0;
-        }
-        print_Dir_Entry(de);
-
-        FileHandle* fh = make_FileHandle(de);
-        if(fill_FileHandle(fh) == 0){
-            perror("Errore riempimento campi fh");
-            return 0;
-        }
-        print_FileHandle(fh);
-        //riassegno la direntry ad un nuovo fh
-        FileHandle* fh2 = make_FileHandle(de);
-        if(fill_FileHandle(fh2) <0){
-            perror("Errore riempimento campi fh");
-            return 0;
-        }
-        print_FileHandle(fh2);
-        free_FileHandle(fh);
-        free_FileHandle(fh2);
-        free_Dir_Entry(de);
-        */
-    //Testo creazione con NULL passato come parametro
-    //Dir_Entry* de = make_Dir_Entry();
-    //if(!de) return -1;
-    //print_Dir_Entry(de);
-    //FileHandle* fh = make_FileHandle((Dir_Entry*)NULL);
-    //if(!fh) return -1;
-    //Dir_Entry* de = make_Dir_Entry();
-    //if(!de) printf("de non inizializzata correttamente\n");
-    //fill_Dir_Entry(de);
-    //print_Dir_Entry(de);
-    //FileHandle* fh = make_FileHandle(de);
-    //if(fill_FileHandle(fh) < 0) return 0;
-    //printf("Prima free fh\n");
-    //free_FileHandle(&fh);
-    //printf("Seconda free fh\n");
-    //free_FileHandle(&fh); //doppia free
-    //free_Dir_Entry(de);
-    //Dir_Entry* de = make_Dir_Entry();
-    //if(fill_Dir_Entry(de) < 0 ) return 0;
-    //FileHandle* handles[10];
-    //for (int i = 0; i < 10; i++) {
-    //    handles[i] = make_FileHandle(de);
-    //    if (!handles[i] || !fill_FileHandle(handles[i])) {
-    //        printf("Errore riempimento handle %d\n", i);
-    //    }
-    //}
-    //for (int i = 0; i < 10; i++) {
-    //    free_FileHandle(&handles[i]);
-    //}
-    //free_Dir_Entry(de);
-    /*FileSystem* fs = fs_init();
-    if(disk_creat("mydisk.fs", DISK_SIZE) < 0){
-        return -1;
-    }
-    if(disk_mount(fs,"mydisk.fs") < 0){
-        return -1;
-    }
-    printf("fs montato:  %d\n", fs->mounted);
-    if(disk_mount(fs,"mydisk.fs") > 0){
-        printf("Errore: ho appena montato di nuovo il fs su mydisk\n");
-        return -1;
-    }
-    printf("bloccato tentativo di mount doppio\n");
-    if(disk_unmount(fs) < 0){
-        return -1;
-    }
-    if(disk_unmount(fs) > 0){
-        printf("doppio unmount\n");
-        return -1;
-    }
-    printf("bloccato tentativo di un,mount doppio\n");
-    fs_free(&fs);
-    return 1;*/
-   int test;
-    //test = test_filehandle();
-    //if (test < 0) {
-    //    printf("Test_filehandle fallito\n");
-    //    return -1;
-    //}
-    //printf("Test_filehandle completato con successo!\n\n");
-    test = test_dirhandle();
-    if(test < 0 ) printf("Test dirhandle fallito");
+    int test;
+    test = test_filehandle_write();
+    if(test) printf("Fine test\n");
     return 1;
 }
 int test_filehandle() {
@@ -193,3 +101,123 @@ int test_dirhandle(){
     fs_free(&fs);
     return 1;
 }
+int test_write_read(){
+    FileSystem* fs = fs_init();
+    if(!fs) return -1;
+    if(disk_creat("mydisk.fs",DISK_SIZE) < 0){
+        fs_free(&fs);
+        return -1;
+    }
+    if(disk_mount(fs,"mydisk.fs")<0){
+        fs_free(&fs);
+        return -1;
+    }
+    char msg[BLOCK_SIZE] = "Prova scrittura testo\0";
+    uint16_t test_block = DATA_START_BLOCK + 10;
+    if(fs_write_block(fs,test_block,msg) < 0){
+        disk_unmount(fs);
+        fs_free(&fs);
+        return -1;
+    }
+    char read_bytes[BLOCK_SIZE];
+    if(fs_read_block(fs,test_block,read_bytes) < 0){
+        printf("Lettura fallita\n");
+        disk_unmount(fs);
+        fs_free(&fs);
+        return -1;
+    }
+    printf(" Ho letto : %s\n",read_bytes);
+    disk_unmount(fs);
+    fs_free(&fs);
+    return 1;
+}
+int test_explore_block(){
+    FileSystem* fs = fs_init();
+    if(!fs) return -1;
+    if(disk_creat("mydisk.fs",DISK_SIZE) < 0){
+        fs_free(&fs);
+        return -1;
+    }
+    if(disk_mount(fs,"mydisk.fs")<0){
+        fs_free(&fs);
+        return -1;
+    }
+    char msg[BLOCK_SIZE] = "Prova scrittura testo\n Messaggio piu grande\t\t Ancora";
+    uint16_t test_block = DATA_START_BLOCK + 10;
+    if(fs_write_block(fs,test_block,msg) < 0){
+        disk_unmount(fs);
+        fs_free(&fs);
+        return -1;
+    }
+    char read_bytes[BLOCK_SIZE];
+    if(fs_read_block(fs,test_block,read_bytes) < 0){
+        printf("Lettura fallita\n");
+        disk_unmount(fs);
+        fs_free(&fs);
+        return -1;
+    }
+    printf(" Ho letto : %s\n",read_bytes);
+    size_t off = fs_explore_block(fs,test_block);
+    printf("offset di blocco ultimo carattere: %d\n",(int)off);
+    disk_unmount(fs);
+    fs_free(&fs);
+    return 1;
+}
+
+int test_filehandle_write() {    
+    FileSystem* fs = fs_init();
+    if (!fs) {
+        return -1;
+    }
+    
+    if (disk_creat("test_write.fs", DISK_SIZE) < 0) {
+        fs_free(&fs);
+        return -1;
+    }
+    
+    if (disk_mount(fs, "test_write.fs") < 0) {
+        fs_free(&fs);
+        return -1;
+    }    
+    FileHandle* fh1 = FileHandle_create(fs, "small.txt");
+    if (!fh1) {
+        disk_unmount(fs);
+        fs_free(&fs);
+        return -1;
+    }
+        
+    char msg[] = "Messaggio di prova";
+    size_t msg_size = strlen(msg);
+    int result1 = FileHandle_write(fs, fh1, msg, msg_size);
+    if (result1 < 0) {
+        FileHandle_free(fs, fh1);
+        disk_unmount(fs);
+        fs_free(&fs);
+        return -1;
+    }    
+    printf("File size aggiornata: %u bytes\n", fh1->dir->file_size);
+    printf("Byte offset corrente: %u\n", fh1->byte_offset);
+    
+    char verify_buffer[BLOCK_SIZE];
+    if (fs_read_block(fs, fh1->dir->first_block, verify_buffer) < 0) {
+        FileHandle_free(fs, fh1);
+        disk_unmount(fs);
+        fs_free(&fs);
+        return -1;
+    }
+    
+    if (memcmp(msg, verify_buffer, msg_size) == 0) {
+    } else {
+        printf("Atteso: '%s'\n", msg);
+        printf("Trovato: '%s'\n", verify_buffer);
+        FileHandle_free(fs, fh1);
+        disk_unmount(fs);
+        fs_free(&fs);
+        return -1;
+    }
+    FileHandle_free(fs, fh1);
+    disk_unmount(fs);
+    fs_free(&fs);
+    return 1;
+}
+    

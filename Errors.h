@@ -28,4 +28,7 @@
 #define DH_ALLOC_FAIL -23
 #define DH_NOTOPEN -24
 #define DH_FREE_FAIL -25
+#define FS_NOTINIT -26
+#define INVALID_BLOCK -27
+#define W_PERM -28
 void print_error(int);

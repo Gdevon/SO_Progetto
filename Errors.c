@@ -63,6 +63,15 @@ void print_error(int err){
         case DH_NOTOPEN:
             printf("Dh non è aperta\n");
             break;
+        case FS_NOTINIT:
+            printf("Fs non inizializzato");
+            break;
+        case INVALID_BLOCK:
+            printf("Numero del blocco > blocchi totali\n");
+            break;
+        case W_PERM:
+            printf("Permessi di scrittura non abilitati");
+            break;
         default:
             printf("Errore sconosciuto: %d\n", err);
             break;

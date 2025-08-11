@@ -21,3 +21,4 @@ FileHandle* FileHandle_create(FileSystem *, char* );
 void FileHandle_free(FileSystem* ,FileHandle*);
 void FileHandle_print(FileHandle*);
 int is_dir(char*);
+int FileHandle_write(FileSystem*, FileHandle* , char* ,size_t );

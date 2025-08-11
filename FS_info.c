@@ -142,3 +142,61 @@ void fs_free(FileSystem** fs){
         printf("free fs\n");
     }
 }
+int fs_write_block(FileSystem* fs, uint16_t block_id, char* buffer){
+    if(!fs){
+        print_error(FS_NOTINIT);
+        return -1;
+    }
+    if(!fs->mounted){
+        print_error(DISK_UNMOUNTED);
+        return -1;
+    }
+    if(block_id >= TOTAL_BLOCKS){
+        print_error(INVALID_BLOCK);
+        return -1;
+    }
+    uint32_t offset = block_id*BLOCK_SIZE;
+    memcpy(fs->disk+offset,buffer,BLOCK_SIZE);
+    printf("Blocco scritto\n");
+    return 0;
+}
+int fs_read_block(FileSystem* fs, uint16_t block_id,char* buffer){
+    if(!fs){
+        print_error(FS_NOTINIT);
+        return -1;
+    }
+    if(!fs->mounted){
+        print_error(DISK_UNMOUNTED);
+        return -1;
+    }
+    if(block_id >= TOTAL_BLOCKS){
+        print_error(INVALID_BLOCK);
+        return -1;
+    }
+    uint32_t offset = block_id * BLOCK_SIZE;
+    memcpy(buffer, fs->disk+offset,BLOCK_SIZE);
+    printf("Read_block completata\n");
+    return 1;
+}
+size_t fs_explore_block(FileSystem* fs, uint16_t block){
+    if(!fs){
+        print_error(FS_NOTINIT);
+        return -1;
+    }
+    if(!fs->mounted){
+        print_error(DISK_UNMOUNTED);
+        return -1;
+    }
+    if(block >= TOTAL_BLOCKS){
+        print_error(INVALID_BLOCK);
+        return -1;
+    }
+    size_t off = 0;
+    while(off < BLOCK_SIZE){
+        if(fs->disk[block*BLOCK_SIZE+off] == '\0'){
+            return off;
+        }
+        off++;
+    }
+    return off;
+}
