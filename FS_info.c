@@ -125,6 +125,7 @@ FileSystem* fs_init(){
         fs->fat = NULL;
         fs->root_dir = NULL;
         fs->mounted = 0;
+        printf("FS inizializzato\n");
         return fs;
     }
     print_error(FS_ALLOC_FAIL);
@@ -142,7 +143,7 @@ void fs_free(FileSystem** fs){
         printf("free fs\n");
     }
 }
-int fs_write_block(FileSystem* fs, uint16_t block_id, char* buffer){
+int fs_write_block(FileSystem* fs, uint16_t block_id, void* buffer){
     if(!fs){
         print_error(FS_NOTINIT);
         return -1;
@@ -160,7 +161,7 @@ int fs_write_block(FileSystem* fs, uint16_t block_id, char* buffer){
     printf("Blocco scritto\n");
     return 0;
 }
-int fs_read_block(FileSystem* fs, uint16_t block_id,char* buffer){
+int fs_read_block(FileSystem* fs, uint16_t block_id,void* buffer){
     if(!fs){
         print_error(FS_NOTINIT);
         return -1;
@@ -175,7 +176,7 @@ int fs_read_block(FileSystem* fs, uint16_t block_id,char* buffer){
     }
     uint32_t offset = block_id * BLOCK_SIZE;
     memcpy(buffer, fs->disk+offset,BLOCK_SIZE);
-    printf("Read_block completata\n");
+    printf("Write_block completata\n");
     return 1;
 }
 size_t fs_explore_block(FileSystem* fs, uint16_t block){

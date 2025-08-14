@@ -10,4 +10,5 @@ typedef struct {
 } DirHandle;
 
 DirHandle* DirHandle_create(FileSystem* ,char*);
+int DirHandle_close(FileSystem* , DirHandle* );
 void DirHandle_free(FileSystem* , DirHandle* );

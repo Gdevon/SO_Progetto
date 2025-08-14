@@ -64,13 +64,31 @@ void print_error(int err){
             printf("Dh non è aperta\n");
             break;
         case FS_NOTINIT:
-            printf("Fs non inizializzato");
+            printf("Fs non inizializzato\n");
             break;
         case INVALID_BLOCK:
             printf("Numero del blocco > blocchi totali\n");
             break;
         case W_PERM:
             printf("Permessi di scrittura non abilitati");
+            break;
+        case NO_WRITE:  
+            printf("Scrittura di 0 bytes o su buffer non allocato\n");
+            break;
+        case R_PERM:
+            printf("Permessi di lettura non abilitati\n");
+            break;
+        case BAD_READ:  
+            printf("Problemi in lettura\n");
+            break;
+        case FH_NOTOPEN:
+            printf("Fh non aperto\n");
+            break;
+        case FH_NOTINIT:    
+            printf("Il fh non esiste\n");
+            break;
+        case NO_OFFSET: 
+            printf("Errore con l'offset di FileHandle seek\n");
             break;
         default:
             printf("Errore sconosciuto: %d\n", err);

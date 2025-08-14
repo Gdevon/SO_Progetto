@@ -28,7 +28,13 @@
 #define DH_ALLOC_FAIL -23
 #define DH_NOTOPEN -24
 #define DH_FREE_FAIL -25
+#define DH_NOTINIT -32
 #define FS_NOTINIT -26
 #define INVALID_BLOCK -27
 #define W_PERM -28
+#define NO_WRITE -29
+#define R_PERM -30
+#define BAD_READ -31
+#define FH_NOTINIT -33
+#define NO_OFFSET -34
 void print_error(int);

@@ -4,11 +4,14 @@
 #include <stdio.h>
 #include "FAT_info.h"
 #include "DIR_Entry.h"
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
 typedef enum{
     PERM_WRITE = 1,
     PERM_READ = 2,
     PERM_APP = 3,
-    PERM_NO = 0
+    PERM_NO = 4,
 }Permission;
 typedef struct{
     Dir_Entry* dir;
@@ -17,8 +20,12 @@ typedef struct{
     Permission permission;
 }FileHandle;
 
-FileHandle* FileHandle_create(FileSystem *, char* );
-void FileHandle_free(FileSystem* ,FileHandle*);
+FileHandle* FileHandle_open(FileSystem *, char*,Permission  );
+int FileHandle_close(FileSystem* ,FileHandle*);
+void FileHandle_free(FileSystem* , FileHandle* );
 void FileHandle_print(FileHandle*);
 int is_dir(char*);
 int FileHandle_write(FileSystem*, FileHandle* , char* ,size_t );
+int FileHandle_read(FileSystem*, FileHandle*, char*,size_t);
+int FileHandle_seek(FileHandle*,int,int);
+int FileHandle_tell(FileHandle*);

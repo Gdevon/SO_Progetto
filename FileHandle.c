@@ -5,8 +5,11 @@
 #include "DIR_Entry.h"
 #include "FS_info.h"
 #include "ListHandle.h"
+#define SEEK_SET 0
+#define SEEK_CUR 1
+#define SEEK_END 2
 
-FileHandle* FileHandle_create(FileSystem* fs, char* filename){
+FileHandle* FileHandle_open(FileSystem* fs, char* filename, Permission perm){
     if(fs->mounted == 0){
         print_error(DISK_UNMOUNTED);
         return NULL;
@@ -40,7 +43,7 @@ FileHandle* FileHandle_create(FileSystem* fs, char* filename){
     fh->dir = free_entry;
     fh->byte_offset = 0;
     fh->open = 1;
-    fh->permission = PERM_WRITE;
+    fh->permission = perm;
     Handle_Item* item = (Handle_Item*)malloc(sizeof(Handle_Item));
     if(!item){
         free(fh);
@@ -51,42 +54,38 @@ FileHandle* FileHandle_create(FileSystem* fs, char* filename){
     List_insert(&fs->handles,NULL,&item->h);
     return fh;
 }
-void FileHandle_free(FileSystem* fs, FileHandle *fh){
+int FileHandle_close(FileSystem* fs, FileHandle *fh){
     if(!fs || !fh){
         print_error(FH_FREE_FAIL);
-        return;
+        return -1 ;
     }if(!fh->open){
         print_error(FH_NOTOPEN);
-        return;
+        return -1;
     }ListItem* current = fs->handles.first;
     while(current){
         Handle_Item *h_item = (Handle_Item*)current;
         if(h_item->handle == fh && h_item->type == FILE_HANDLE){
+            fh->open = 0;
             List_detach(&fs->handles,current);
-            ListItem_destroy(current);
-            return;
+            free(h_item);
+            //free(current);
+            return 1;
         }
         current = current->next;
     }
+    print_error(FH_NOTOPEN);
+    return 1;
 }
-/*void FileHandle_print(FileHandle* fh){
-    if(fh->open == 1){
-        printf("INFORMAZIONI FILEHANDLE %s\n", fh->dir->filename);
-        printf("Byte offset: %u\n", fh->byte_offset);
-        printf("Open : %u\n", fh->open);
-        printf("Permission: %u\n", fh->permission);
-        printf("----------------\n");
-        Dir_Entry_print(fh->dir);
+void FileHandle_free(FileSystem* fs, FileHandle* fh){
+    if(fh->open){
+        FileHandle_close(fs,fh);
     }
-    else{
-        printf("FileHandle non aperto\n");
-    }
-} DA RIFARE */
+    free(fh);
+}
 int is_dir(char* filename){
     if(strstr(filename,".")) return 1; // è un file se contiene .
     else return 0; //cartella se non contiene .
 }
-
 int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_to_write) {
     if (!fs) {
         print_error(FS_NOTINIT);
@@ -109,7 +108,8 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
         return -1;
     }
     if(!buffer || size_to_write == 0){
-        return 0;
+        print_error(NO_WRITE);
+        return -1;
     }
 
     size_t curr_offset = fh->byte_offset;
@@ -185,5 +185,141 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
     if (fh->byte_offset > fh->dir->file_size) {
         fh->dir->file_size = fh->byte_offset;
     }
+    printf("FileHandle_write completata\n");
     return written_bytes;
+}
+int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_read){
+    if (!fs) {
+        print_error(FS_NOTINIT);
+        return -1;
+    }
+    if (!fs->mounted) {
+        print_error(DISK_UNMOUNTED);
+        return -1;
+    }
+    if (!fh) {
+        print_error(FH_ALLOC_FAIL);
+        return -1;
+    }
+    if (!fh->open) {
+        print_error(FH_NOTOPEN);
+        return -1;
+    }
+    if (!(fh->permission & PERM_READ)) {
+        print_error(W_PERM);
+        return -1;
+    }
+    if(!buffer || size_to_read == 0){
+        return 0;
+    }
+    size_t curr_offset = fh->byte_offset;
+    uint16_t curr_block = fh->dir->first_block;
+    size_t read_bytes = 0;
+    if(curr_block == FAT_BLOCK_END){
+        return 0;
+    }
+    if(curr_block == FAT_BAD){
+        print_error(BAD_READ);
+        return -1;
+    }
+    size_t bytes_to_read = fh->dir->file_size - curr_offset;
+    if(bytes_to_read == 0) return 0;
+    if(size_to_read > bytes_to_read){
+        size_to_read = bytes_to_read;
+    }
+    uint16_t block_idx = curr_offset / BLOCK_SIZE;
+    size_t block_offset = curr_offset % BLOCK_SIZE;
+    for(size_t i = 0;i < block_idx; ++i){
+        if(curr_block == FAT_BLOCK_END){
+            print_error(INVALID_BLOCK);
+            return -1;
+        }
+        uint16_t next_block = fs->fat[curr_block];
+        if(next_block == FAT_BAD){
+            print_error(INVALID_BLOCK);
+            return -1;
+        }
+        curr_block = next_block;
+    }
+    while(read_bytes < size_to_read){
+        size_t bytes_to_read_in_block = BLOCK_SIZE - block_offset;
+        if(bytes_to_read_in_block > size_to_read - read_bytes){
+            bytes_to_read_in_block = size_to_read - read_bytes;
+        }
+        char data_block[BLOCK_SIZE];
+        if(fs_read_block(fs,curr_block,data_block) < 0 ){
+            print_error(INVALID_BLOCK);
+            return read_bytes;
+        }
+        memcpy(buffer+read_bytes, data_block+block_offset,bytes_to_read_in_block);
+        read_bytes += bytes_to_read_in_block;
+        curr_offset += bytes_to_read_in_block;
+        fh->byte_offset = curr_offset;
+        block_offset = 0;
+        if(read_bytes < size_to_read){
+            uint16_t next_block = fs->fat[curr_block];
+            if(next_block == FAT_BLOCK_END){
+                return read_bytes;
+            }
+            if(next_block == FAT_BAD){
+                print_error(INVALID_BLOCK);
+                return read_bytes;
+            }
+            curr_block = next_block;
+        }
+    }
+    return read_bytes;
+}
+int FileHandle_seek(FileHandle* fh, int offset, int where){
+    if(!fh){
+        print_error(FH_NOTINIT);
+        return -1;
+    }
+    if(!fh->open){
+        print_error(FH_NOTOPEN);
+        return -1;
+    }
+    size_t pos;
+    if(where == SEEK_SET){
+        if(offset < 0){
+            print_error(NO_OFFSET);
+            return -1;
+        }
+        pos = offset;
+    }else if(where == SEEK_CUR){
+        if( (offset < 0) && (-offset) > fh->byte_offset){
+            print_error(NO_OFFSET);
+            return -1;
+        }pos = fh->byte_offset + offset;
+    }else if(where == SEEK_END){
+        if(offset > 0){
+            print_error(NO_OFFSET);
+            return -1;
+        }
+        if((-offset) > fh->dir->file_size){
+            print_error(NO_OFFSET);
+            return -1;
+        }
+        pos = fh->dir->file_size + offset;
+    }else{
+        print_error(NO_OFFSET);
+        return -1;
+    }
+    if(pos > fh->dir->file_size){
+        print_error(NO_OFFSET);
+        return -1;
+    }
+    fh->byte_offset = pos;
+    return 1;
+}
+int FileHandle_tell(FileHandle* fh){
+    if(!fh){
+        print_error(FH_NOTINIT);
+        return -1;
+    }
+    if(!fh->open){
+        print_error(FH_NOTOPEN);
+        return -1;
+    }
+    return fh->byte_offset;
 }

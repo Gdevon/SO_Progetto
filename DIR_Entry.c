@@ -23,7 +23,6 @@ void Dir_Entry_create(Dir_Entry* free_entry, char*filename, uint16_t start, int 
     //setto l'orario -- presa da stackoverflow
    time_t now = time(NULL);
    free_entry->creation_time = time_to_uint16(now);
-   free_entry->modify_time = free_entry->creation_time;
    //uguale per la data
    free_entry->creation_date = date_to_uint16(now);
    free_entry->access_date = free_entry->creation_date;
@@ -53,7 +52,7 @@ void Dir_Entry_print(Dir_Entry* de){
         printf("Creation Time:  %u\n", de->creation_time);
         printf("Creation Date:  %u\n", de->creation_date);
         printf("Access Date:    %u\n", de->access_date);
-        printf("Modify Time:    %u\n", de->modify_time);
+        //printf("Modify Time:    %u\n", de->modify_time);
         printf("Modify Date:    %u\n", de->modify_date);
         printf("First Block:    %u\n", de->first_block);
         printf("File Size:      %u bytes\n", de->file_size);

@@ -14,11 +14,13 @@ void Handle_Item_destroy(ListItem* item){
     if(h->type == FILE_HANDLE){
         FileHandle* fh = (FileHandle*) h->handle;
         fh->open = 0;
-        free(fh);
     }else{
         DirHandle* dh = (DirHandle*) h->handle;
         dh->open = 0;
-        free(dh);
+        if(dh->entries){
+            free(dh->entries);
+            dh->entries = NULL;
+        }
     }
     free(h);
 }

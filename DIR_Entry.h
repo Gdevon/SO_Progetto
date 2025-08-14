@@ -3,16 +3,14 @@
 #include <time.h>
 typedef struct FileSystem FileSystem;
 
-#define FILENAME_LEN 128 //lunghezza massima nome file
 #define DIR_ENTRY_SIZE 32 
-#define ENTRIES_PER_BLOCK (512 / DIR_ENTRY_SIZE) //512 sarebbe block size ma includendo fs_info mi dava errore...
+#define ENTRIES_PER_BLOCK (512 / DIR_ENTRY_SIZE) //512 sarebbe block size
 typedef struct {
-    char filename[15];
+    char filename[31];
     uint8_t is_dir;         
     uint16_t creation_time;
     uint16_t creation_date;
     uint16_t access_date;
-    uint16_t modify_time;
     uint16_t modify_date;
     uint16_t first_block;
     uint32_t file_size;
