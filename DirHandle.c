@@ -15,12 +15,12 @@ DirHandle* DirHandle_create(FileSystem* fs,char* dirname){
         print_error(DISK_UNMOUNTED);
         return NULL;
     }
-    if(strlen(dirname) > 14){
+    if(strlen(dirname) > 30){
         print_error(LONG_NAME);
         return NULL;
     }
-    if(check_duplicates(fs,dirname) < 0){
-        print_error(DIR_DUPLICATE);
+    if(Dir_Entry_find(fs,dirname) != NULL){
+        print_error(DH_DUPLICATE);
         return NULL;
     }
     Dir_Entry* free_entry = Dir_Entry_find_free(fs);
@@ -29,12 +29,12 @@ DirHandle* DirHandle_create(FileSystem* fs,char* dirname){
         return NULL;
     }
     uint16_t free_fat = FAT_find_free_block(fs);
-    if(free_fat == -1){
+    if(free_fat == FAT_BLOCK_END){
         print_error(FULL_FAT);
         return NULL;
     }
     fs->fat[free_fat] = FAT_BLOCK_END;
-    int type = is_dir(dirname);
+    int type = 0;
     Dir_Entry_create(free_entry,dirname,free_fat,type);
     DirHandle* dh = (DirHandle*)malloc(sizeof(DirHandle));
     if(!dh){

@@ -9,49 +9,73 @@
 #define SEEK_CUR 1
 #define SEEK_END 2
 
-FileHandle* FileHandle_open(FileSystem* fs, char* filename, Permission perm){
-    if(fs->mounted == 0){
+FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
+    if (!fs) {
+        print_error(FS_NOTINIT);
+        return NULL;
+    }
+    if (!fs->mounted) {
         print_error(DISK_UNMOUNTED);
         return NULL;
     }
-    if(strlen(filename) > 14){
+    if (strlen(filename) > 30) {
         print_error(LONG_NAME);
         return NULL;
     }
-    if(check_duplicates(fs,filename) < 0){
-        print_error(FILE_DUPLICATE);
-        return NULL;
+
+    Dir_Entry* target = Dir_Entry_find(fs, filename);
+
+    if (target) {
+        if (target->is_dir == 0) {
+            //devo definire errore
+            return NULL;
+        }
+
+        if ((perm & PERM_CREAT) && (perm & PERM_EXCL)) {
+            print_error(FILE_DUPLICATE);
+            return NULL;
+        }
+
+    } else {
+        if (!(perm & PERM_CREAT)) {
+            print_error(FILE_NOT_FOUND);
+            return NULL;
+        }
+        Dir_Entry* free_entry = Dir_Entry_find_free(fs);
+        if (!free_entry) {
+            return NULL;
+        }
+        uint16_t free_fat = FAT_find_free_block(fs);
+        if (free_fat == FAT_BLOCK_END) {
+            print_error(FULL_FAT);
+            return NULL;
+        }
+        fs->fat[free_fat] = FAT_BLOCK_END;
+
+        int type = is_dir(filename);
+        Dir_Entry_create(free_entry, filename, free_fat, type);
+        target = free_entry;
     }
-    Dir_Entry* free_entry = Dir_Entry_find_free(fs);
-    if(!free_entry){
-        print_error(FULL_DIR);
-        return NULL;
-    }
-    uint16_t free_fat = FAT_find_free_block(fs);
-    if(free_fat == FAT_BLOCK_END){
-        print_error(FULL_FAT);
-        return NULL;
-    }
-    fs->fat[free_fat] = FAT_BLOCK_END;
-    int type = is_dir(filename);
-    Dir_Entry_create(free_entry,filename,free_fat,type);
     FileHandle* fh = (FileHandle*)malloc(sizeof(FileHandle));
-    if(!fh){
+    if (!fh) {
         print_error(FH_ALLOC_FAIL);
         return NULL;
     }
-    fh->dir = free_entry;
+    fh->dir = target;
     fh->byte_offset = 0;
     fh->open = 1;
     fh->permission = perm;
+
     Handle_Item* item = (Handle_Item*)malloc(sizeof(Handle_Item));
-    if(!item){
+    if (!item) {
         free(fh);
-        print_error(FS_ALLOC_FAIL);
+        print_error(FH_ALLOC_FAIL);
         return NULL;
     }
-    Handle_Item_create(item,fh,FILE_HANDLE);
-    List_insert(&fs->handles,NULL,&item->h);
+    Handle_Item_create(item, fh, FILE_HANDLE);
+    List_insert(&fs->handles, NULL, &item->h);
+
+    printf("File aperto con successo\n");
     return fh;
 }
 int FileHandle_close(FileSystem* fs, FileHandle *fh){
@@ -82,10 +106,7 @@ void FileHandle_free(FileSystem* fs, FileHandle* fh){
     }
     free(fh);
 }
-int is_dir(char* filename){
-    if(strstr(filename,".")) return 1; // è un file se contiene .
-    else return 0; //cartella se non contiene .
-}
+
 int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_to_write) {
     if (!fs) {
         print_error(FS_NOTINIT);
@@ -115,7 +136,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
     size_t curr_offset = fh->byte_offset;
     uint16_t curr_block = fh->dir->first_block;
     size_t written_bytes = 0;
-    if(curr_block == 0 || curr_block == FAT_BLOCK_END || curr_block == FAT_FREE_BLOCK){
+    if(curr_block == FAT_FREE_BLOCK || curr_block == FAT_BLOCK_END || curr_block == FAT_FREE_BLOCK){
         curr_block = FAT_find_free_block(fs);
         if(curr_block == (uint16_t) -1){
             print_error(FULL_FAT);
@@ -135,7 +156,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
             return -1;
         }
         uint16_t next_block = fs->fat[curr_block];
-        if(next_block == FAT_BAD || next_block == 0){
+        if(next_block == FAT_BAD){
             print_error(INVALID_BLOCK);
             return -1;
         }
@@ -322,4 +343,46 @@ int FileHandle_tell(FileHandle* fh){
         return -1;
     }
     return fh->byte_offset;
+}
+int FileHandle_delete(FileSystem* fs, char* filename){
+    if(!fs){
+        print_error(FS_NOTINIT);
+        return -1;
+    }
+    if(!fs->mounted){
+        print_error(DISK_UNMOUNTED);
+        return -1;
+    }
+    Dir_Entry* entry = Dir_Entry_find(fs,filename);
+    if(!entry){
+        print_error(FILE_NOT_FOUND);
+        return -1;
+    }
+    ListItem* curr = fs->handles.first;
+    while(curr){
+        Handle_Item* item = (Handle_Item*) curr;
+        if(item->type == FILE_HANDLE){
+            FileHandle* fh = (FileHandle*) item->handle;
+            if(fh->dir == entry && fh->open){
+                print_error(FILE_ALR_OPEN);
+                return -1;
+            }
+        }
+        curr = curr->next;
+    }
+    printf("nella delete 1\n");
+    uint16_t curr_block = entry->first_block;
+    while(curr_block != FAT_BLOCK_END && curr_block != FAT_FREE_BLOCK && curr_block != FAT_BAD){
+        uint16_t next_block = FAT_find_next_block(fs,curr_block);
+        if(next_block == FAT_BAD){
+            return -1;
+        }
+        fs->fat[curr_block] = FAT_FREE_BLOCK;
+        curr_block = next_block;
+            printf("nella delete 2\n");
+
+    }
+    memset(entry,0,sizeof(Dir_Entry));
+    printf("file eliminato con successo\n");
+    return 1;
 }

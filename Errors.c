@@ -90,6 +90,12 @@ void print_error(int err){
         case NO_OFFSET: 
             printf("Errore con l'offset di FileHandle seek\n");
             break;
+        case FILE_NOT_FOUND:
+            printf("File non trovato\n");
+            break;
+        case FILE_ALR_OPEN:
+            printf("Non si può eleiminare un file aperto\n");
+            break;
         default:
             printf("Errore sconosciuto: %d\n", err);
             break;

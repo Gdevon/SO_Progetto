@@ -10,8 +10,9 @@
 typedef enum{
     PERM_WRITE = 1,
     PERM_READ = 2,
-    PERM_APP = 3,
     PERM_NO = 4,
+    PERM_CREAT = 8,
+    PERM_EXCL = 16
 }Permission;
 typedef struct{
     Dir_Entry* dir;
@@ -20,12 +21,12 @@ typedef struct{
     Permission permission;
 }FileHandle;
 
-FileHandle* FileHandle_open(FileSystem *, char*,Permission  );
+FileHandle* FileHandle_open(FileSystem *, char*,Permission);
 int FileHandle_close(FileSystem* ,FileHandle*);
 void FileHandle_free(FileSystem* , FileHandle* );
 void FileHandle_print(FileHandle*);
-int is_dir(char*);
 int FileHandle_write(FileSystem*, FileHandle* , char* ,size_t );
 int FileHandle_read(FileSystem*, FileHandle*, char*,size_t);
 int FileHandle_seek(FileHandle*,int,int);
 int FileHandle_tell(FileHandle*);
+int FileHandle_delete(FileSystem*, char*);

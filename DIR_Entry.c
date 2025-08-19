@@ -16,7 +16,7 @@ void Dir_Entry_create(Dir_Entry* free_entry, char*filename, uint16_t start, int 
     }
     memset(free_entry,0,sizeof(Dir_Entry));
     strcpy(free_entry->filename, filename);
-    free_entry -> filename[14] = '\0';
+    free_entry -> filename[31] = '\0';
     free_entry->first_block = start;
     free_entry->file_size = 0;
     free_entry->is_dir = type;
@@ -38,7 +38,7 @@ void Dir_Entry_free(Dir_Entry* de){
 }
 Dir_Entry* Dir_Entry_find_free(FileSystem* fs){
     for(int i=0; i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
-        if(fs->root_dir[i].file_size == 0){
+        if(fs->root_dir[i].file_size == '\0'){
             return &fs->root_dir[i];
         }
     }
@@ -82,13 +82,22 @@ void print_date(uint16_t date){
     struct tm *tm_info = localtime(&t);
     printf("%02d-%02d-%04d",tm_info->tm_mon + 1, tm_info->tm_mday,tm_info->tm_year + 1900);
 }
-int check_duplicates(FileSystem* fs,char* filename){
-    for(int i = 0;i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
+Dir_Entry* Dir_Entry_find(FileSystem* fs, char* name){
+    if(!fs){
+        print_error(FS_NOTINIT);
+        return NULL;
+    }
+    for(int i = 0; i < ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
         if(fs->root_dir[i].filename[0] != '\0'){
-            if(strcmp(fs->root_dir[i].filename,filename) == 0){
-                return -1;
+            if(strcmp(fs->root_dir[i].filename,name) == 0){
+                return &fs->root_dir[i];
             }
         }
     }
-    return 1;
+    print_error(NO_FREE_ENTRY);
+    return NULL;
+}
+int is_dir(char* name){
+    if(strstr(name,".")) return 1; // è un file se contiene .
+    else return 0; //cartella se non contiene .
 }

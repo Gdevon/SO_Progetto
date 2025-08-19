@@ -37,4 +37,8 @@
 #define BAD_READ -31
 #define FH_NOTINIT -33
 #define NO_OFFSET -34
+#define FILE_NOT_FOUND -35
+#define FILE_ALR_OPEN -36
+#define FH_OPEN_FAIL -37
+#define DH_DUPLICATE -38
 void print_error(int);
