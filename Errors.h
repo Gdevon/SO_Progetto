@@ -41,4 +41,6 @@
 #define FILE_ALR_OPEN -36
 #define FH_OPEN_FAIL -37
 #define DH_DUPLICATE -38
+#define NOT_A_DIR -39
+#define DIR_NOT_FOUND -40
 void print_error(int);

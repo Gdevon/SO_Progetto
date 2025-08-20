@@ -12,11 +12,11 @@ void Dir_Entry_create(Dir_Entry* free_entry, char*filename, uint16_t start, int 
         printf("Sto creando una entry per un file\n");
     }
     else{
-        printf("Sto creando una entry per una dir");
+        printf("Sto creando una entry per una dir\n");
     }
     memset(free_entry,0,sizeof(Dir_Entry));
     strcpy(free_entry->filename, filename);
-    free_entry -> filename[31] = '\0';
+    free_entry -> filename[30] = '\0';
     free_entry->first_block = start;
     free_entry->file_size = 0;
     free_entry->is_dir = type;
@@ -38,7 +38,7 @@ void Dir_Entry_free(Dir_Entry* de){
 }
 Dir_Entry* Dir_Entry_find_free(FileSystem* fs){
     for(int i=0; i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
-        if(fs->root_dir[i].file_size == '\0'){
+        if(fs->root_dir[i].filename[0] == '\0'){
             return &fs->root_dir[i];
         }
     }
@@ -82,7 +82,7 @@ void print_date(uint16_t date){
     struct tm *tm_info = localtime(&t);
     printf("%02d-%02d-%04d",tm_info->tm_mon + 1, tm_info->tm_mday,tm_info->tm_year + 1900);
 }
-Dir_Entry* Dir_Entry_find(FileSystem* fs, char* name){
+Dir_Entry* Dir_Entry_find_name(FileSystem* fs, char* name){
     if(!fs){
         print_error(FS_NOTINIT);
         return NULL;
@@ -100,4 +100,12 @@ Dir_Entry* Dir_Entry_find(FileSystem* fs, char* name){
 int is_dir(char* name){
     if(strstr(name,".")) return 1; // è un file se contiene .
     else return 0; //cartella se non contiene .
+}
+void Dir_Entry_list(FileSystem* fs){
+    for (int i=0; i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK; ++i){
+        Dir_Entry* e = &fs->root_dir[i];
+        if (e->filename[0] != '\0'){
+            printf("%s %uB  %s  first_block=%u\n",e->is_dir ? "<DIR>" : "<FILE>",e->file_size,e->filename,e->first_block);
+        }
+    }
 }

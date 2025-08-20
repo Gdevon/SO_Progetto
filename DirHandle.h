@@ -9,6 +9,6 @@ typedef struct {
     uint8_t open;          
 } DirHandle;
 
-DirHandle* DirHandle_create(FileSystem* ,char*);
+DirHandle* DirHandle_open(FileSystem* ,char*,Permission);
 int DirHandle_close(FileSystem* , DirHandle* );
 void DirHandle_free(FileSystem* , DirHandle* );

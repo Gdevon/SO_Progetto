@@ -7,13 +7,6 @@
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
-typedef enum{
-    PERM_WRITE = 1,
-    PERM_READ = 2,
-    PERM_NO = 4,
-    PERM_CREAT = 8,
-    PERM_EXCL = 16
-}Permission;
 typedef struct{
     Dir_Entry* dir;
     uint32_t byte_offset;

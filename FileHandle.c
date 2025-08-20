@@ -23,7 +23,7 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
         return NULL;
     }
 
-    Dir_Entry* target = Dir_Entry_find(fs, filename);
+    Dir_Entry* target = Dir_Entry_find_name(fs, filename);
 
     if (target) {
         if (target->is_dir == 0) {
@@ -353,7 +353,7 @@ int FileHandle_delete(FileSystem* fs, char* filename){
         print_error(DISK_UNMOUNTED);
         return -1;
     }
-    Dir_Entry* entry = Dir_Entry_find(fs,filename);
+    Dir_Entry* entry = Dir_Entry_find_name(fs,filename);
     if(!entry){
         print_error(FILE_NOT_FOUND);
         return -1;

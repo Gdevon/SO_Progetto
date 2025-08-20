@@ -96,6 +96,12 @@ void print_error(int err){
         case FILE_ALR_OPEN:
             printf("Non si può eleiminare un file aperto\n");
             break;
+        case DIR_NOT_FOUND:
+            printf("Impossibile trovare la dir\n");
+            break;
+        case NOT_A_DIR:
+            printf("Not a dir\n");
+            break;
         default:
             printf("Errore sconosciuto: %d\n", err);
             break;

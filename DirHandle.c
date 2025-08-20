@@ -6,7 +6,7 @@
 #include "FAT_info.h"
 #include "ListHandle.h"
 
-DirHandle* DirHandle_create(FileSystem* fs,char* dirname){
+DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
     if(!fs){
         print_error(FS_NOTINIT);
         return NULL;
@@ -19,41 +19,58 @@ DirHandle* DirHandle_create(FileSystem* fs,char* dirname){
         print_error(LONG_NAME);
         return NULL;
     }
-    if(Dir_Entry_find(fs,dirname) != NULL){
-        print_error(DH_DUPLICATE);
-        return NULL;
+    Dir_Entry* target = Dir_Entry_find_name(fs,dirname);
+    if(target){
+        if(target->is_dir){
+            print_error(NOT_A_DIR);
+            return NULL;
+        }
+        if((perm & PERM_CREAT) && (perm & PERM_EXCL)){
+            print_error(DH_DUPLICATE);
+            return NULL;
+        }
+    }else{
+        if(!(perm & PERM_CREAT)){
+            print_error(DIR_NOT_FOUND);
+            return NULL;
+        }
+        Dir_Entry* free_entry = Dir_Entry_find_free(fs);
+        if(!free_entry){
+            print_error(FULL_DIR);
+            return NULL;
+        }
+        uint16_t free_fat = FAT_find_free_block(fs);
+        if (free_fat == FAT_BLOCK_END) {
+            print_error(FULL_FAT);
+            return NULL;
+        }
+        fs->fat[free_fat] = FAT_BLOCK_END;
+
+        int type = 0; // 0 = dir
+        Dir_Entry_create(free_entry, dirname, free_fat, type);
+        target = free_entry;
     }
-    Dir_Entry* free_entry = Dir_Entry_find_free(fs);
-    if(!free_entry){
-        print_error(FULL_DIR);
-        return NULL;
-    }
-    uint16_t free_fat = FAT_find_free_block(fs);
-    if(free_fat == FAT_BLOCK_END){
-        print_error(FULL_FAT);
-        return NULL;
-    }
-    fs->fat[free_fat] = FAT_BLOCK_END;
-    int type = 0;
-    Dir_Entry_create(free_entry,dirname,free_fat,type);
     DirHandle* dh = (DirHandle*)malloc(sizeof(DirHandle));
-    if(!dh){
+    if (!dh) {
         print_error(DH_ALLOC_FAIL);
         return NULL;
     }
     dh->entries = NULL;
     dh->num_entries = 0;
     dh->position = 0;
-    dh->first_block = free_fat;
+    dh->first_block = target->first_block;
     dh->open = 1;
+
     Handle_Item* item = (Handle_Item*)malloc(sizeof(Handle_Item));
-    if(!item){
+    if (!item) {
         free(dh);
         print_error(DH_ALLOC_FAIL);
         return NULL;
     }
-    Handle_Item_create(item,dh,DIR_HANDLE);
-    List_insert(&fs->handles,NULL,&item->h);
+    Handle_Item_create(item, dh, DIR_HANDLE);
+    List_insert(&fs->handles, NULL, &item->h);
+
+    printf("Directory aperta con successo\n");
     return dh;
 }
 int DirHandle_close(FileSystem* fs, DirHandle* dh){
