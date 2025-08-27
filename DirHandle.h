@@ -12,3 +12,5 @@ typedef struct {
 DirHandle* DirHandle_open(FileSystem* ,char*,Permission);
 int DirHandle_close(FileSystem* , DirHandle* );
 void DirHandle_free(FileSystem* , DirHandle* );
+void DirHandle_list(FileSystem*,DirHandle*);
+int DirHandle_delete(FileSystem*,char*);

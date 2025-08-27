@@ -102,6 +102,12 @@ void print_error(int err){
         case NOT_A_DIR:
             printf("Not a dir\n");
             break;
+        case ROOT_AREA:
+            printf("Non è possibile eseguire operazioni sulla root");
+            break;
+        case DIR_NOT_EMPTY:
+            printf("Non è possibile eliminare una dir non vuota\n");
+            break;
         default:
             printf("Errore sconosciuto: %d\n", err);
             break;

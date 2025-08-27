@@ -23,11 +23,11 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
         return NULL;
     }
 
-    Dir_Entry* target = Dir_Entry_find_name(fs, filename);
+    Dir_Entry* target = Dir_Entry_find_name(fs, filename,0);
 
     if (target) {
         if (target->is_dir == 0) {
-            //devo definire errore
+            print_error(NOT_A_FILE);
             return NULL;
         }
 
@@ -38,10 +38,11 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
 
     } else {
         if (!(perm & PERM_CREAT)) {
+            printf("debug");
             print_error(FILE_NOT_FOUND);
             return NULL;
         }
-        Dir_Entry* free_entry = Dir_Entry_find_free(fs);
+        Dir_Entry* free_entry = Dir_Entry_find_free(fs,0);
         if (!free_entry) {
             return NULL;
         }
@@ -353,7 +354,7 @@ int FileHandle_delete(FileSystem* fs, char* filename){
         print_error(DISK_UNMOUNTED);
         return -1;
     }
-    Dir_Entry* entry = Dir_Entry_find_name(fs,filename);
+    Dir_Entry* entry = Dir_Entry_find_name(fs,filename,0);
     if(!entry){
         print_error(FILE_NOT_FOUND);
         return -1;
@@ -383,6 +384,7 @@ int FileHandle_delete(FileSystem* fs, char* filename){
 
     }
     memset(entry,0,sizeof(Dir_Entry));
+    entry->first_block = FAT_FREE_BLOCK;
     printf("file eliminato con successo\n");
     return 1;
 }

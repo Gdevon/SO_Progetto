@@ -36,6 +36,7 @@
 #define R_PERM -30
 #define BAD_READ -31
 #define FH_NOTINIT -33
+#define NOT_A_FILE -44
 #define NO_OFFSET -34
 #define FILE_NOT_FOUND -35
 #define FILE_ALR_OPEN -36
@@ -43,4 +44,8 @@
 #define DH_DUPLICATE -38
 #define NOT_A_DIR -39
 #define DIR_NOT_FOUND -40
+#define DIR_IN_USE -41
+#define ROOT_AREA -42
+#define DIR_NOT_EMPTY -43
+
 void print_error(int);

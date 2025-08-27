@@ -21,12 +21,12 @@ void Dir_Entry_create(Dir_Entry* free_entry, char*filename, uint16_t start, int 
     free_entry->file_size = 0;
     free_entry->is_dir = type;
     //setto l'orario -- presa da stackoverflow
-   time_t now = time(NULL);
-   free_entry->creation_time = time_to_uint16(now);
-   //uguale per la data
-   free_entry->creation_date = date_to_uint16(now);
-   free_entry->access_date = free_entry->creation_date;
-   free_entry->modify_date = free_entry->creation_date;
+    time_t now = time(NULL);
+    free_entry->creation_time = time_to_uint16(now);
+    //uguale per la data
+    free_entry->creation_date = date_to_uint16(now);
+    free_entry->access_date = free_entry->creation_date;
+    free_entry->modify_date = free_entry->creation_date;
 }
 
 
@@ -36,32 +36,6 @@ void Dir_Entry_free(Dir_Entry* de){
     }
     de = NULL;
 }
-Dir_Entry* Dir_Entry_find_free(FileSystem* fs){
-    for(int i=0; i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
-        if(fs->root_dir[i].filename[0] == '\0'){
-            return &fs->root_dir[i];
-        }
-    }
-    print_error(NO_FREE_ENTRY); 
-    return NULL;
-}
-void Dir_Entry_print(Dir_Entry* de){
-    if(de && de->access_date > 0){
-        printf("----- DIR ENTRY INFO -----\n");
-        printf("Filename:       %s\n", de->filename);
-        printf("Creation Time:  %u\n", de->creation_time);
-        printf("Creation Date:  %u\n", de->creation_date);
-        printf("Access Date:    %u\n", de->access_date);
-        //printf("Modify Time:    %u\n", de->modify_time);
-        printf("Modify Date:    %u\n", de->modify_date);
-        printf("First Block:    %u\n", de->first_block);
-        printf("File Size:      %u bytes\n", de->file_size);
-        printf("--------------------------\n");
-    }else{
-        puts("Impossibile stampare, de non esistente o vuota");
-    }
-}
-
 
 uint16_t time_to_uint16(time_t timestamp) {
     struct tm *tm_info = localtime(&timestamp);
@@ -82,30 +56,83 @@ void print_date(uint16_t date){
     struct tm *tm_info = localtime(&t);
     printf("%02d-%02d-%04d",tm_info->tm_mon + 1, tm_info->tm_mday,tm_info->tm_year + 1900);
 }
-Dir_Entry* Dir_Entry_find_name(FileSystem* fs, char* name){
+
+int is_dir(char* name){
+    if(strstr(name,".")) return 1; // è un file se contiene .
+    else return 0; //cartella se non contiene .
+}
+void Dir_Entry_list(FileSystem* fs, uint16_t dir_block){
     if(!fs){
         print_error(FS_NOTINIT);
-        return NULL;
+        return;
     }
-    for(int i = 0; i < ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;++i){
-        if(fs->root_dir[i].filename[0] != '\0'){
-            if(strcmp(fs->root_dir[i].filename,name) == 0){
-                return &fs->root_dir[i];
-            }
+    Dir_Entry* dir_entries;
+    int max_entries;
+    if(dir_block == 0 || dir_block < DATA_START_BLOCK){
+        dir_entries = fs->root_dir;
+        max_entries = ROOT_DIR_BLOCKS * ENTRIES_PER_BLOCK; //512 
+    }else{
+        int32_t block_offset = (dir_block - DATA_START_BLOCK) * BLOCK_SIZE;
+        dir_entries = (Dir_Entry*)(fs->data + block_offset);  
+        max_entries = ENTRIES_PER_BLOCK;  //16
+    }
+    for (int i = 0; i < max_entries; i++) {
+        Dir_Entry* e = &dir_entries[i];
+        
+        if (e->filename[0] != '\0') {
+            printf("%s %uB  %s  first_block=%u\n", 
+                   e->is_dir == 0 ? "<DIR>" : "<FILE>",  
+                   e->file_size,                    
+                   e->filename,                     
+                   e->first_block);                 
+        }
+    }
+    
+    printf("-----------------------------\n");
+}
+Dir_Entry* Dir_Entry_find_free(FileSystem* fs,uint16_t start_block){
+    int max_entries;
+    Dir_Entry* entries;
+    if(start_block == 0 || start_block < DATA_START_BLOCK){
+        entries = fs->root_dir;
+        max_entries = ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;
+    }
+    else{
+        uint32_t block_offset = (start_block - DATA_START_BLOCK)*BLOCK_SIZE;
+        entries = (Dir_Entry*)(fs->data+block_offset);
+        max_entries = ENTRIES_PER_BLOCK;
+    }
+    for(int i = 0;i<max_entries;++i){
+        if(entries[i].filename[0] == '\0'){
+            return &entries[i];
         }
     }
     print_error(NO_FREE_ENTRY);
     return NULL;
 }
-int is_dir(char* name){
-    if(strstr(name,".")) return 1; // è un file se contiene .
-    else return 0; //cartella se non contiene .
-}
-void Dir_Entry_list(FileSystem* fs){
-    for (int i=0; i<ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK; ++i){
-        Dir_Entry* e = &fs->root_dir[i];
-        if (e->filename[0] != '\0'){
-            printf("%s %uB  %s  first_block=%u\n",e->is_dir ? "<DIR>" : "<FILE>",e->file_size,e->filename,e->first_block);
+Dir_Entry* Dir_Entry_find_name(FileSystem* fs, char* name, uint16_t dir_block) {
+    if (!fs) {
+        print_error(FS_NOTINIT);
+        return NULL;
+    }
+    
+    Dir_Entry* dir_entries;
+    int max_entries;
+    if (dir_block == 0 || dir_block < DATA_START_BLOCK) {
+        dir_entries = fs->root_dir;  
+        max_entries = ROOT_DIR_BLOCKS * ENTRIES_PER_BLOCK; 
+    } 
+    else {
+        uint32_t block_offset = (dir_block - DATA_START_BLOCK) * BLOCK_SIZE;
+        dir_entries = (Dir_Entry*)(fs->data + block_offset);  
+        max_entries = ENTRIES_PER_BLOCK;  
+    }
+    for (int i = 0; i < max_entries; i++) {
+        if (dir_entries[i].filename[0] != '\0') {
+            if (strcmp(dir_entries[i].filename, name) == 0) {
+                return &dir_entries[i];  
+            }
         }
     }
+    return NULL;  // Non trovata
 }
