@@ -47,5 +47,7 @@
 #define DIR_IN_USE -41
 #define ROOT_AREA -42
 #define DIR_NOT_EMPTY -43
+#define EMPTY_NAME -45
+#define DATA_NOTINIT -46
 
 void print_error(int);

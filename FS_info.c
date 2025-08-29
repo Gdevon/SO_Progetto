@@ -39,16 +39,15 @@ int disk_creat(char* disk_name, uint32_t size){
         }
         return DISK_CREAT_MMAP_FAIL;
     }
+    memset(disk,0,DISK_SIZE);
     uint16_t* fat = (uint16_t*)(disk + (BLOCK_SIZE*BOOT_SECTOR_BLOCKS));
     for(int i = 0; i < FAT_ENTRIES; ++i){
         fat[i] = FAT_FREE_BLOCK;
-    }//INIZIALIZZO FAT
-    Dir_Entry* ROOT_DIR = (Dir_Entry*)(disk+ (BLOCK_SIZE)*(BOOT_SECTOR_BLOCKS+FAT_BLOCKS));
-    for(int i = 0; i < ENTRIES_PER_BLOCK*ROOT_DIR_BLOCKS;++i){
-        ROOT_DIR[i].first_block = 0;
-    }//INIZIALIZZATA ROOTDIR
+    }
+    Dir_Entry* root_dir = (Dir_Entry*)(disk+ (BLOCK_SIZE)*(BOOT_SECTOR_BLOCKS+FAT_BLOCKS));
+    memset(root_dir,0,BLOCK_SIZE*ROOT_DIR_BLOCKS);
     uint8_t* data = (uint8_t*)(disk+(BLOCK_SIZE*DATA_START_BLOCK));
-    memset(data,0,BLOCK_SIZE*DATA_BLOCKS);//PULISCO SEZIONE DATI
+    memset(data,0,BLOCK_SIZE*DATA_BLOCKS);
     if(munmap(disk,DISK_SIZE) < 0){
         print_error(DISK_CREAT_MUNMAP_FAIL);
         return DISK_CREAT_MUNMAP_FAIL;
@@ -81,9 +80,11 @@ int disk_mount(FileSystem* fs, char* disk_n){
     }
     fs->fd = fd;
     fs->disk = disk;
-    fs->fat = (uint16_t*)(disk+(BLOCK_SIZE*BOOT_SECTOR_BLOCKS));//B_S_B è 1 inrealtà
+    fs->fat = (uint16_t*)(disk+(BLOCK_SIZE*BOOT_SECTOR_BLOCKS));
     fs->root_dir = (Dir_Entry*)(disk+BLOCK_SIZE*(FAT_BLOCKS+BOOT_SECTOR_BLOCKS));
+    fs->data = (uint8_t*)(disk+ (BLOCK_SIZE*DATA_START_BLOCK));
     fs->mounted = 1;
+    fs->curr_dir = ROOT_DIR_START_BLOCK;
     List_init(&fs->handles);
     printf("Disk_Mount ha avuto successo\n");
     return 1;
@@ -125,6 +126,7 @@ FileSystem* fs_init(){
         fs->fat = NULL;
         fs->root_dir = NULL;
         fs->mounted = 0;
+        fs->curr_dir = ROOT_DIR_START_BLOCK;
         printf("FS inizializzato\n");
         return fs;
     }

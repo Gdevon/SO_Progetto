@@ -16,14 +16,15 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
         return NULL;
     }
     if(dirname[0] == '\0'){
-        printf("Non puoi creare senza un nome\n");
+        print_error(EMPTY_NAME);
         return NULL;
     }
-    if(strlen(dirname) > 30){
+    if(strlen(dirname) > 46){
         print_error(LONG_NAME);
         return NULL;
     }
-    Dir_Entry* target = Dir_Entry_find_name(fs,dirname,0);
+    uint16_t parent_block = fs->curr_dir;
+    Dir_Entry* target = Dir_Entry_find_name(fs,dirname,parent_block);
     if(target){
         if(target->is_dir == 1){
             print_error(NOT_A_DIR);
@@ -38,20 +39,19 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
             print_error(DIR_NOT_FOUND);
             return NULL;
         }
-        Dir_Entry* free_entry = Dir_Entry_find_free(fs,0);
+        Dir_Entry* free_entry = Dir_Entry_find_free(fs,parent_block);
         if(!free_entry){
             print_error(FULL_DIR);
             return NULL;
         }
-        uint16_t free_fat = FAT_find_free_block(fs);
-        if (free_fat == FAT_BLOCK_END) {
+        uint16_t free_block = FAT_find_free_block(fs);
+        if (free_block == FAT_BLOCK_END) {
             print_error(FULL_FAT);
             return NULL;
         }
-        fs->fat[free_fat] = FAT_BLOCK_END;
-
-        int type = is_dir(dirname);
-        Dir_Entry_create(free_entry, dirname, free_fat, type);
+        uint16_t fat_idx = free_block - DATA_START_BLOCK;
+        fs->fat[fat_idx] = FAT_BLOCK_END;
+        Dir_Entry_create(fs,free_entry, dirname, free_block, 0);
         target = free_entry;
     }
     DirHandle* dh = (DirHandle*)malloc(sizeof(DirHandle));
@@ -59,11 +59,12 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
         print_error(DH_ALLOC_FAIL);
         return NULL;
     }
-    dh->entries = NULL;
-    dh->num_entries = 0;
-    dh->position = 0;
     dh->first_block = target->first_block;
+    uint32_t block_offset = (dh->first_block - DATA_START_BLOCK) * BLOCK_SIZE;
+    dh->entries = (Dir_Entry*)(fs->data+block_offset);
+    dh->num_entries = ENTRIES_PER_BLOCK;
     dh->open = 1;
+    dh->position = 0;
     Handle_Item* item = (Handle_Item*)malloc(sizeof(Handle_Item));
     if (!item) {
         free(dh);
@@ -76,6 +77,7 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
     printf("Directory aperta con successo\n");
     return dh;
 }
+
 int DirHandle_close(FileSystem* fs, DirHandle* dh){
     if(!fs || !dh){
         print_error(DH_FREE_FAIL);
@@ -106,9 +108,9 @@ void DirHandle_free(FileSystem* fs, DirHandle* dh){
     if(dh->open){
         DirHandle_close(fs,dh);
     }
-    if(dh->entries){
-        free(dh->entries);
-    }
+    //if(dh->entries){
+    //   free(dh->entries);
+    //}
     free(dh);
 }
 
@@ -137,23 +139,23 @@ int DirHandle_delete(FileSystem* fs, char* dirname){
         return -1;
     }
     if(!dirname){
-        print_error(DH_NOTINIT);//devo cambiare errore
+        print_error(EMPTY_NAME);
         return -1;
     }
     if(!fs->mounted){
         print_error(DISK_UNMOUNTED);
         return -1;
     }
-    if(strlen(dirname) > 30){
+    if(strlen(dirname) > 46){
         print_error(LONG_NAME);
         return -1;
     }
-    Dir_Entry* target = Dir_Entry_find_name(fs,dirname,0);
+    Dir_Entry* target = Dir_Entry_find_name(fs,dirname,fs->curr_dir);
     if(!target){
         print_error(DIR_NOT_FOUND);
         return -1;
     }
-    if(target->is_dir != 0){
+    if(target->is_dir == 1){
         print_error(NOT_A_DIR);
         return -1;
     }
@@ -170,29 +172,26 @@ int DirHandle_delete(FileSystem* fs, char* dirname){
         }
         curr = curr->next;
     }
-    printf("debug delete 2\n");
-    Dir_Entry* dir_entries;
-    int max_entries;
-    if(target->first_block == 0){
-        dir_entries = fs->root_dir;
-        max_entries = ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;
-    }
-    else{
-        uint32_t offset = (target->first_block - DATA_START_BLOCK)*BLOCK_SIZE;
-        dir_entries = (Dir_Entry*)(fs->data + offset);
-        printf("debug delete 3\n");
-        max_entries = ENTRIES_PER_BLOCK;
-    }
-    for(int i = 0;i<max_entries;++i){
-       if(&dir_entries[i] != target && dir_entries[i].filename[0] != '\0'){
-        print_error(DIR_NOT_EMPTY);
+    if(fs->curr_dir == target->first_block){
+        print_error(DIR_IN_USE);
         return -1;
-       }
     }
-    if(target->first_block >= DATA_START_BLOCK){
-        fs->fat[target->first_block] = FAT_FREE_BLOCK;
+    uint32_t offset = (target->first_block - DATA_START_BLOCK) * BLOCK_SIZE;
+    Dir_Entry* dir_entries = (Dir_Entry*)(fs->data+offset);
+    for (int i = 0; i < ENTRIES_PER_BLOCK; ++i) {
+        if (dir_entries[i].filename[0] != '\0' &&
+            strcmp(dir_entries[i].filename, ".") != 0 &&
+            strcmp(dir_entries[i].filename, "..") != 0) {
+            printf("Directory non vuota: trovata entry '%s'\n", dir_entries[i].filename);
+            print_error(DIR_NOT_EMPTY);
+            return -1;
+        }
+    }
+    if (target->first_block >= DATA_START_BLOCK) {
+        uint16_t fat_idx = target->first_block - DATA_START_BLOCK;
+        fs->fat[fat_idx] = FAT_FREE_BLOCK;
     }
     memset(target,0,sizeof(Dir_Entry));
-    printf("Directory %s eliminata\n", dirname);
+    printf("Eliminazione %s effettuata\n",dirname);
     return 1;
 }

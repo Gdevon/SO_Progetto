@@ -18,12 +18,12 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
         print_error(DISK_UNMOUNTED);
         return NULL;
     }
-    if (strlen(filename) > 30) {
+    if (strlen(filename) > 46) {
         print_error(LONG_NAME);
         return NULL;
     }
 
-    Dir_Entry* target = Dir_Entry_find_name(fs, filename,0);
+    Dir_Entry* target = Dir_Entry_find_name(fs, filename,fs->curr_dir);
 
     if (target) {
         if (target->is_dir == 0) {
@@ -42,19 +42,18 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
             print_error(FILE_NOT_FOUND);
             return NULL;
         }
-        Dir_Entry* free_entry = Dir_Entry_find_free(fs,0);
+        Dir_Entry* free_entry = Dir_Entry_find_free(fs,fs->curr_dir);
         if (!free_entry) {
             return NULL;
         }
-        uint16_t free_fat = FAT_find_free_block(fs);
-        if (free_fat == FAT_BLOCK_END) {
+        uint16_t free_block = FAT_find_free_block(fs);
+        if (free_block == FAT_BLOCK_END) {
             print_error(FULL_FAT);
             return NULL;
         }
-        fs->fat[free_fat] = FAT_BLOCK_END;
-
-        int type = is_dir(filename);
-        Dir_Entry_create(free_entry, filename, free_fat, type);
+        uint16_t fat_idx = free_block - DATA_START_BLOCK;
+        fs->fat[fat_idx] = FAT_BLOCK_END;
+        Dir_Entry_create(fs,free_entry, filename, free_block, 1);
         target = free_entry;
     }
     FileHandle* fh = (FileHandle*)malloc(sizeof(FileHandle));
@@ -144,7 +143,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
             return -1;
         }
         fh->dir->first_block = curr_block;
-        fs->fat[curr_block] = FAT_BLOCK_END;
+        fs->fat[curr_block-DATA_START_BLOCK] = FAT_BLOCK_END;
         curr_offset = 0;
         fh->byte_offset = 0;
     }
@@ -195,7 +194,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
                     print_error(FULL_FAT);
                     return written_bytes;
                 }
-                fs->fat[curr_block] = next_block;
+                fs->fat[curr_block - DATA_START_BLOCK] = next_block;
                 fs->fat[next_block] = FAT_BLOCK_END;
             }else if(next_block == FAT_BAD){
                 print_error(INVALID_BLOCK);
@@ -354,7 +353,7 @@ int FileHandle_delete(FileSystem* fs, char* filename){
         print_error(DISK_UNMOUNTED);
         return -1;
     }
-    Dir_Entry* entry = Dir_Entry_find_name(fs,filename,0);
+    Dir_Entry* entry = Dir_Entry_find_name(fs,filename,fs->curr_dir);
     if(!entry){
         print_error(FILE_NOT_FOUND);
         return -1;
