@@ -23,3 +23,4 @@ int FileHandle_read(FileSystem*, FileHandle*, char*,size_t);
 int FileHandle_seek(FileHandle*,int,int);
 int FileHandle_tell(FileHandle*);
 int FileHandle_delete(FileSystem*, char*);
+int FileHandle_change_perm(FileHandle*,Permission);

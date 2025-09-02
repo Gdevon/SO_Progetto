@@ -56,16 +56,20 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
         Dir_Entry_create(fs,free_entry, filename, free_block, 1);
         target = free_entry;
     }
+    update_access_date(target);
     FileHandle* fh = (FileHandle*)malloc(sizeof(FileHandle));
     if (!fh) {
         print_error(FH_ALLOC_FAIL);
         return NULL;
     }
     fh->dir = target;
+    if(perm & PERM_APPEND){
+        fh->byte_offset = target->file_size;
+    }else{
     fh->byte_offset = 0;
+    }
     fh->open = 1;
     fh->permission = perm;
-
     Handle_Item* item = (Handle_Item*)malloc(sizeof(Handle_Item));
     if (!item) {
         free(fh);
@@ -74,8 +78,7 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
     }
     Handle_Item_create(item, fh, FILE_HANDLE);
     List_insert(&fs->handles, NULL, &item->h);
-
-    printf("File aperto con successo\n");
+    printf("File %s aperto con successo\n", fh->dir->filename);
     return fh;
 }
 int FileHandle_close(FileSystem* fs, FileHandle *fh){
@@ -93,6 +96,7 @@ int FileHandle_close(FileSystem* fs, FileHandle *fh){
             List_detach(&fs->handles,current);
             free(h_item);
             //free(current);
+            printf("Close di %s effettuata\n", fh->dir->filename);
             return 1;
         }
         current = current->next;
@@ -135,7 +139,10 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
 
     size_t curr_offset = fh->byte_offset;
     uint16_t curr_block = fh->dir->first_block;
-    size_t written_bytes = 0;
+    if(fh->permission & PERM_APPEND){ 
+        curr_offset = fh->dir->file_size;
+        fh->byte_offset = curr_offset;
+    }size_t written_bytes = 0;
     if(curr_block == FAT_FREE_BLOCK || curr_block == FAT_BLOCK_END || curr_block == FAT_FREE_BLOCK){
         curr_block = FAT_find_free_block(fs);
         if(curr_block == (uint16_t) -1){
@@ -206,6 +213,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
     if (fh->byte_offset > fh->dir->file_size) {
         fh->dir->file_size = fh->byte_offset;
     }
+    update_modify_time(fh->dir);
     printf("FileHandle_write completata\n");
     return written_bytes;
 }
@@ -289,6 +297,7 @@ int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_
             curr_block = next_block;
         }
     }
+    update_access_date(fh->dir);
     return read_bytes;
 }
 int FileHandle_seek(FileHandle* fh, int offset, int where){
@@ -370,20 +379,32 @@ int FileHandle_delete(FileSystem* fs, char* filename){
         }
         curr = curr->next;
     }
-    printf("nella delete 1\n");
+    //printf("nella delete 1\n");
     uint16_t curr_block = entry->first_block;
     while(curr_block != FAT_BLOCK_END && curr_block != FAT_FREE_BLOCK && curr_block != FAT_BAD){
         uint16_t next_block = FAT_find_next_block(fs,curr_block);
         if(next_block == FAT_BAD){
             return -1;
         }
-        fs->fat[curr_block] = FAT_FREE_BLOCK;
+        fs->fat[curr_block-DATA_START_BLOCK] = FAT_FREE_BLOCK;
         curr_block = next_block;
-            printf("nella delete 2\n");
+            //printf("nella delete 2\n");
 
     }
     memset(entry,0,sizeof(Dir_Entry));
     entry->first_block = FAT_FREE_BLOCK;
     printf("file eliminato con successo\n");
+    return 1;
+}
+int FileHandle_change_perm(FileHandle* fh, Permission perm){
+    if(!fh){
+        print_error(FH_NOTINIT);
+        return -1;
+    }
+    if(fh->open == 0){
+        print_error(FH_NOTOPEN);
+        return -1;
+    }
+    fh->permission = perm;
     return 1;
 }

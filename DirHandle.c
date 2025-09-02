@@ -73,7 +73,6 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
     }
     Handle_Item_create(item, dh, DIR_HANDLE);
     List_insert(&fs->handles, NULL, &item->h);
-
     printf("Directory aperta con successo\n");
     return dh;
 }
