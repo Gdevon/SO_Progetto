@@ -1,4 +1,11 @@
+#include <string.h>
 #include "shell.h"
+#include "FS_info.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "Extern_fs.h"
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
 "MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE"};
 int (*cmd_pointer[])(char**) = {
@@ -87,11 +94,73 @@ char* shell_read(){
     return line;
 }
 int shell_format(char **args) {
-    return 1;
+    if (strcmp(args[0], "FORMAT") == 0) {
+        if (args[1] == NULL) {
+            printf("Inserire nome disco\n");
+            return -1;
+        }
+        char *fs_name = args[1];
+        int fd = open(fs_name, O_RDONLY);
+        if (fd >= 0) {
+        printf("Disco '%s' esistente, formatto...\n", fs_name);
+        close(fd);
+        if (fs && fs->mounted) {
+            if (disk_unmount(fs) < 0) {
+                return -1;
+            }
+        }
+        if (unlink(fs_name) < 0) {
+            perror("Errore nella rimozione del disco");
+            return -1;
+        }
+    }
+        if (!fs) {
+            fs = fs_init();
+            if (!fs) {
+                return -1;
+            }
+        }
+        if (disk_creat(fs_name, DISK_SIZE) < 0) {
+            return -1;
+        }
+        printf("Disco formattato correttamente\n");
+        return 1;
+    }
+    return -1;
 }
 
 int shell_mount(char **args) {
-    return 1;
+    if( strcmp(args[0],"MOUNT") == 0){
+        if(args[1] == NULL){
+            printf("Inserire nome disco\n");
+            return -1;
+        }
+        if(fs && fs->mounted){
+            print_error(DISK_MOUNTED);
+            return -1;
+        }
+        if(!fs){
+            fs = fs_init();
+            if(!fs){
+                print_error(FS_NOTINIT);
+                return -1;
+            }
+        }
+        char* disk_name = args[1];
+        int fd = open(disk_name,O_RDONLY);
+        if(fd < 0){
+            printf("Disco non esistente\n");
+            return -1;
+        }
+        if(close(fd) < 0 ){
+            printf("Erorre chiusura in shellmount\n");
+        }
+        if(disk_mount(fs,disk_name) < 0){
+            return -1;
+        }
+        return 1;
+    }
+    return -1;
 }
 
 int shell_unmount(char **args) {

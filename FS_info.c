@@ -30,7 +30,7 @@ int disk_creat(char* disk_name, uint32_t size){
         }
         return TRUNC_ERR;
     }
-    uint8_t* disk = (uint8_t*)mmap(NULL,DISK_SIZE,PROT_READ|PROT_WRITE|PROT_EXEC,MAP_SHARED,fd,0);
+    uint8_t* disk = (uint8_t*)mmap(NULL,DISK_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);
     if(disk == MAP_FAILED){
         print_error(DISK_CREAT_MMAP_FAIL);
         if(close(fd) < 0 ){
@@ -203,3 +203,6 @@ size_t fs_explore_block(FileSystem* fs, uint16_t block){
     }
     return off;
 }
+//void fs_erase(FileSystem** fs){
+//    return;
+//}

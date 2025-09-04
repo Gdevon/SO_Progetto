@@ -36,3 +36,4 @@ void fs_free(FileSystem**);
 int fs_write_block(FileSystem*,uint16_t,void*);
 int fs_read_block(FileSystem*,uint16_t,void*);
 size_t fs_explore_block(FileSystem*, uint16_t);
+//void fs_erase(FileSystem**);
