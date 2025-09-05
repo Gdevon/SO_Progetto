@@ -107,32 +107,27 @@ void Dir_Entry_list(FileSystem* fs, uint16_t dir_block){
     }
 }
 void Dir_Entry_list_aux(Dir_Entry* e){
-    if (e->filename[0] != '\0') {
-        int type = e->is_dir;
-        if(type == 0){
-            printf("<DIR>  Nome: %s  first_block=%u\n",
-                    e->filename,
-                    e->first_block);
-        }else{
-            int creation_h[3], creation_d[3];
-            int access_d[3], modify_h[3];
-            get_time(e->creation_time, creation_h);   
-            get_date(e->creation_date, creation_d);   
-            get_date(e->access_date, access_d);       
-            get_time(e->modify_time, modify_h);       
-            printf("<FILE> %uB  Nome: %s Primo blocco=%u\n"
-                   "Data creazione: %02d-%02d-%04d  Orario creazione: %02d:%02d:%02d\n"
-                   "Data ultimo accesso: %02d-%02d-%04d  Orario ultima modifica: %02d:%02d:%02d\n",
-                   e->file_size,
-                   e->filename,
-                   e->first_block,
-                   creation_d[0], creation_d[1], creation_d[2],
-                   creation_h[0], creation_h[1], creation_h[2],
-                   access_d[0], access_d[1], access_d[2],
-                   modify_h[0], modify_h[1], modify_h[2]
-            );
+    if(e->filename[0] != '\0'){
+        int type  = e->is_dir;
+        if(strcmp(e->filename, ".") == 0 || strcmp(e->filename,"..") == 0) {
+            return;
         }
-    printf("-----------------------------\n"); 
+        int creation_h[3], creation_d[3], modify_h[3];
+        get_time(e->creation_time,creation_h);
+        get_time(e->modify_time,modify_h);
+        get_date(e->creation_date,creation_d);
+        if(type == 0){
+            printf("%s  <DIR>   %02d-%02d-%04d %02d:%02d\n",
+                   e->filename,
+                   creation_d[0], creation_d[1], creation_d[2],
+                   creation_h[0], creation_h[1]);
+        } else {  
+            printf("%s >FILE> %uB  %02d-%02d-%04d %02d:%02d\n",
+                   e->filename,
+                   e->file_size,
+                   creation_d[0], creation_d[1], creation_d[2],
+                   modify_h[0], modify_h[1]);
+        }
     }
 }
 void Dir_Entry_curr_list(FileSystem* fs){

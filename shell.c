@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "Extern_fs.h"
+#include "DirHandle.h"
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
 "MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE"};
 int (*cmd_pointer[])(char**) = {
@@ -94,9 +95,13 @@ char* shell_read(){
     return line;
 }
 int shell_format(char **args) {
+    if(strcmp(args[0], "FORMAT") != 0 || args[1] == NULL){
+        printf("Inserire : FORMAT <name>\n");
+        return -1;
+    }
     if (strcmp(args[0], "FORMAT") == 0) {
         if (args[1] == NULL) {
-            printf("Inserire nome disco\n");
+            printf("Inserire nome disco: FORMAT <name> \n");
             return -1;
         }
         char *fs_name = args[1];
@@ -130,9 +135,13 @@ int shell_format(char **args) {
 }
 
 int shell_mount(char **args) {
+    if( strcmp(args[0],"MOUNT") != 0 || args[1] == NULL){
+        printf("Inserire: MOUNT <name>\n");
+        return -1;
+    }
     if( strcmp(args[0],"MOUNT") == 0){
         if(args[1] == NULL){
-            printf("Inserire nome disco\n");
+            printf("Inserire nome disco: MOUNT <name>\n");
             return -1;
         }
         if(fs && fs->mounted){
@@ -164,14 +173,72 @@ int shell_mount(char **args) {
 }
 
 int shell_unmount(char **args) {
-    return 1;
+    if(strcmp(args[0],"UNMOUNT") == 0 && args[1]!= NULL){
+        printf("Digitare solo UNMOUNT\n");
+        return -1;
+    }
+    if(strcmp(args[0], "UNMOUNT") == 0){
+       if(!fs || !fs->mounted){
+        printf("Nessun disco montato\n");
+       }else{
+        if(disk_unmount(fs)< 0){
+            return -1;
+        }else{
+            return 1;
+        }
+       }
+    }
+    printf("errore shell unmoun\n");
+    return - 1;
 }
 
 int shell_mkdir(char **args) {
-    return 1;
+    if( strcmp(args[0],"MKDIR") == 0 && args[1] == NULL){
+        printf("Digitare MKDIR <name>\n");
+        return -1;
+    }
+    if(!fs){
+        printf("Prima FORMAT <disco>\n");
+        return -1;
+    }
+    if(fs && !fs->mounted){
+        printf("Prima MOUNT <disco>\n");
+        return -1;
+    }
+    char* dir_name = args[1];
+    if(strstr(dir_name,".") != NULL){
+        printf("Il nome della cartella non può contenere un punto\n");
+        return -1;
+    }
+    DirHandle* dh = DirHandle_open(fs,dir_name,PERM_CREAT|PERM_EXCL);
+    if(dh){
+        if(DirHandle_close(fs,dh)<0) return -1;
+        DirHandle_free(fs,dh);
+    }else{
+        printf("Errore creazione dh\n");
+        return -1;
+    }
+    return -1;
 }
 
 int shell_cd(char **args) {
+    if(strcmp(args[0],"CD") == 0 && args[1] == NULL){
+        printf("Digitare CD <dest>\n");
+        return -1;
+    }
+    if(!fs){
+        printf("Prima FORMAT <disco>\n");
+        return -1;
+    }
+    if(fs && !fs->mounted){
+        printf("Prima MOUNT <disco>\n");
+        return -1;
+    }
+    char* dir_name = args[1];
+    if(Dir_Entry_change(fs,dir_name) < 0){
+        printf("Errore nel cambio directory, esiste?\n");
+        return -1;
+    }
     return 1;
 }
 
@@ -184,6 +251,29 @@ int shell_cat(char **args) {
 }
 
 int shell_ls(char **args) {
+    if(strcmp(args[0],"LS") != 0){
+        return -1;
+    }
+    if(!fs){
+        printf("Prima FORMAT <disco>\n");
+        return -1;
+    }
+    if(fs && !fs->mounted){
+        printf("Prima MOUNT <disco>\n");
+        return -1;
+    }
+    if(args[1] == NULL){
+        printf("Contenuto dir:\n");
+        Dir_Entry_curr_list(fs);
+    }else{
+        char* to_list = args[1];
+        Dir_Entry* target = Dir_Entry_find_name(fs,to_list,fs->curr_dir);
+        if(!target){
+            printf("Dir non esistente");
+        }else{
+            Dir_Entry_list(fs,target->first_block);
+        }
+    }
     return 1;
 }
 
@@ -204,5 +294,20 @@ int shell_help(char **args) {
 }
 
 int shell_close(char **args) {
-    return 1;
+    if(strcmp(args[0],"CLOSE") == 0){
+        if(!fs){
+            printf("Nessun fs da chiudere\n");
+            return 0;
+        }
+        if(fs->mounted){
+            if(disk_unmount(fs) < 0){
+                return -1;
+            }
+        }
+        fs_free(&fs);
+        fs = NULL;
+        return 0;
+    }
+    printf("shell close error\n");
+    return -1;
 }
