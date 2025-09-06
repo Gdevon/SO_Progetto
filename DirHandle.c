@@ -73,7 +73,7 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
     }
     Handle_Item_create(item, dh, DIR_HANDLE);
     List_insert(&fs->handles, NULL, &item->h);
-    printf("Directory aperta con successo\n");
+    //printf("Directory aperta con successo\n");
     return dh;
 }
 
@@ -107,9 +107,6 @@ void DirHandle_free(FileSystem* fs, DirHandle* dh){
     if(dh->open){
         DirHandle_close(fs,dh);
     }
-    //if(dh->entries){
-    //   free(dh->entries);
-    //}
     free(dh);
 }
 
@@ -158,7 +155,7 @@ int DirHandle_delete(FileSystem* fs, char* dirname){
         print_error(NOT_A_DIR);
         return -1;
     }
-    printf("debug delete 1\n");
+    //printf("debug delete 1\n");
     ListItem* curr = fs->handles.first;
     while(curr){
         Handle_Item* it = (Handle_Item*)curr;
@@ -181,7 +178,6 @@ int DirHandle_delete(FileSystem* fs, char* dirname){
         if (dir_entries[i].filename[0] != '\0' &&
             strcmp(dir_entries[i].filename, ".") != 0 &&
             strcmp(dir_entries[i].filename, "..") != 0) {
-            printf("Directory non vuota: trovata entry '%s'\n", dir_entries[i].filename);
             print_error(DIR_NOT_EMPTY);
             return -1;
         }
@@ -191,6 +187,6 @@ int DirHandle_delete(FileSystem* fs, char* dirname){
         fs->fat[fat_idx] = FAT_FREE_BLOCK;
     }
     memset(target,0,sizeof(Dir_Entry));
-    printf("Eliminazione %s effettuata\n",dirname);
+    //printf("Eliminazione %s effettuata\n",dirname);
     return 1;
 }

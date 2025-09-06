@@ -78,7 +78,7 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
     }
     Handle_Item_create(item, fh, FILE_HANDLE);
     List_insert(&fs->handles, NULL, &item->h);
-    printf("File %s aperto con successo\n", fh->dir->filename);
+    //printf("File %s aperto con successo\n", fh->dir->filename);
     return fh;
 }
 int FileHandle_close(FileSystem* fs, FileHandle *fh){
@@ -95,8 +95,7 @@ int FileHandle_close(FileSystem* fs, FileHandle *fh){
             fh->open = 0;
             List_detach(&fs->handles,current);
             free(h_item);
-            //free(current);
-            printf("Close di %s effettuata\n", fh->dir->filename);
+            //printf("Close di %s effettuata\n", fh->dir->filename);
             return 1;
         }
         current = current->next;
@@ -214,7 +213,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
         fh->dir->file_size = fh->byte_offset;
     }
     update_modify_time(fh->dir);
-    printf("FileHandle_write completata\n");
+    //printf("FileHandle_write completata\n");
     return written_bytes;
 }
 int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_read){
@@ -393,7 +392,7 @@ int FileHandle_delete(FileSystem* fs, char* filename){
     }
     memset(entry,0,sizeof(Dir_Entry));
     entry->first_block = FAT_FREE_BLOCK;
-    printf("file eliminato con successo\n");
+    //printf("file eliminato con successo\n");
     return 1;
 }
 int FileHandle_change_perm(FileHandle* fh, Permission perm){

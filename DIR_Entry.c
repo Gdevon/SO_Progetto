@@ -30,7 +30,7 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
             print_error(INVALID_BLOCK);
             return;
         }
-        printf("Blocco %u valido, offset %u\n", start, block_offset);
+        //printf("Blocco %u valido, offset %u\n", start, block_offset);
     }
     
     memset(free_entry, 0, sizeof(Dir_Entry));
@@ -47,9 +47,9 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
     free_entry->modify_time = free_entry->creation_time;
     
     if (type == 1) {
-        printf("Creata entry per file: %s\n", filename);
+       //printf("Creata entry per file: %s\n", filename);
     } else {
-        printf("Inizializzando directory '%s' nel blocco %u\n", filename, start);
+        //printf("Inizializzando directory '%s' nel blocco %u\n", filename, start);
         uint32_t block_offset = (start - DATA_START_BLOCK) * BLOCK_SIZE;
         Dir_Entry* dir_entries = (Dir_Entry*)(fs->data + block_offset);
         memset(fs->data + block_offset, 0, BLOCK_SIZE);   
@@ -73,7 +73,7 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
         dir_entries[1].creation_date = date_to_uint16(now);
         dir_entries[1].access_date = dir_entries[1].creation_date;
         dir_entries[1].modify_time = dir_entries[1].creation_time;
-        printf("Directory inizializzata\n");
+       // printf("Directory inizializzata\n");
     }
 }
 
@@ -208,7 +208,7 @@ int Dir_Entry_change(FileSystem* fs, char* name){
         }        
         if (strcmp(entries[1].filename, "..") == 0) {
             fs->curr_dir = entries[1].first_block;
-            printf("Cambiato alla directory padre (blocco %u)\n", fs->curr_dir);
+            //printf("Cambiato alla directory padre (blocco %u)\n", fs->curr_dir);
             return 1;
         } else {
             print_error(DIR_NOT_FOUND);
@@ -226,7 +226,7 @@ int Dir_Entry_change(FileSystem* fs, char* name){
     }
     fs->curr_dir = target->first_block;
     //update_access_time(target);
-    printf("Cambiato in directory '%s' (blocco %u)\n", name, fs->curr_dir);
+    //printf("Cambiato in directory '%s' (blocco %u)\n", name, fs->curr_dir);
     return 1;
 }
 

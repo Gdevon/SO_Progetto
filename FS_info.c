@@ -14,7 +14,7 @@
 
 int disk_creat(char* disk_name, uint32_t size){
     if(size != DISK_SIZE){
-        printf("size [%u] non corrispondente a DISK_SIZE: [%u]\n",size,DISK_SIZE);
+        //printf("size [%u] non corrispondente a DISK_SIZE: [%u]\n",size,DISK_SIZE);
         return -1;
     }
     int fd = open(disk_name,O_RDWR|O_CREAT|O_EXCL|O_TRUNC,0666);
@@ -56,7 +56,7 @@ int disk_creat(char* disk_name, uint32_t size){
         print_error(DISK_CREAT_CLOSE_FAIL);
         return DISK_CREAT_CLOSE_FAIL;
     }
-    printf("Disk_creat ha avuto successo\n");
+    //printf("Disk_creat ha avuto successo\n");
     return 1;
 }
 int disk_mount(FileSystem* fs, char* disk_n){
@@ -86,7 +86,7 @@ int disk_mount(FileSystem* fs, char* disk_n){
     fs->mounted = 1;
     fs->curr_dir = ROOT_DIR_START_BLOCK;
     List_init(&fs->handles);
-    printf("Disk_Mount ha avuto successo\n");
+    //printf("Disk_Mount ha avuto successo\n");
     return 1;
 }
 int disk_unmount(FileSystem* fs){
@@ -114,7 +114,7 @@ int disk_unmount(FileSystem* fs){
     fs->root_dir = NULL;
     fs->fd = -1;
     fs->mounted = 0;
-    printf("Disk_Unmount ha avuto successo\n");
+    //printf("Disk_Unmount ha avuto successo\n");
     return 1;
 }
 FileSystem* fs_init(){
@@ -127,7 +127,7 @@ FileSystem* fs_init(){
         fs->root_dir = NULL;
         fs->mounted = 0;
         fs->curr_dir = ROOT_DIR_START_BLOCK;
-        printf("FS inizializzato\n");
+       // printf("FS inizializzato\n");
         return fs;
     }
     print_error(FS_ALLOC_FAIL);
@@ -142,7 +142,7 @@ void fs_free(FileSystem** fs){
         (*fs)->root_dir = NULL;
         (*fs)->mounted = 0;
         free(*fs);
-        printf("free fs\n");
+       // printf("free fs\n");
     }
 }
 int fs_write_block(FileSystem* fs, uint16_t block_id, void* buffer){
@@ -160,7 +160,7 @@ int fs_write_block(FileSystem* fs, uint16_t block_id, void* buffer){
     }
     uint32_t offset = block_id*BLOCK_SIZE;
     memcpy(fs->disk+offset,buffer,BLOCK_SIZE);
-    printf("Blocco scritto\n");
+   // printf("Blocco scritto\n");
     return 0;
 }
 int fs_read_block(FileSystem* fs, uint16_t block_id,void* buffer){
@@ -178,7 +178,7 @@ int fs_read_block(FileSystem* fs, uint16_t block_id,void* buffer){
     }
     uint32_t offset = block_id * BLOCK_SIZE;
     memcpy(buffer, fs->disk+offset,BLOCK_SIZE);
-    printf("Write_block completata\n");
+   // printf("Write_block completata\n");
     return 1;
 }
 size_t fs_explore_block(FileSystem* fs, uint16_t block){
@@ -203,6 +203,4 @@ size_t fs_explore_block(FileSystem* fs, uint16_t block){
     }
     return off;
 }
-//void fs_erase(FileSystem** fs){
-//    return;
-//}
+

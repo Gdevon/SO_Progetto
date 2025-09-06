@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "Extern_fs.h"
 #include "DirHandle.h"
+#include "FileHandle.h"
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
 "MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE"};
 int (*cmd_pointer[])(char**) = {
@@ -70,9 +71,9 @@ int shell_exec(char** args){
         printf("Nessun comando inserito\n");
         return 1;
     }
-    for (int i = 0; args[i] != NULL; i++) {
-    printf("arg[%d] = '%s'\n", i, args[i]);
-    }
+    //for (int i = 0; args[i] != NULL; i++) {
+    //printf("arg[%d] = '%s'\n", i, args[i]);
+    //}
 
     for(int i=0;i<CMD_SIZE;++i){
         if(strcmp(args[0], commands[i]) == 0){
@@ -243,10 +244,69 @@ int shell_cd(char **args) {
 }
 
 int shell_touch(char **args) {
+    if(strcmp(args[0],"TOUCH")== 0 && args[1] == NULL){
+        printf("Specificare nome/i del file: TOUCH <file>");
+    }
+    if(!fs || !fs->mounted){
+        printf("Prima FORMAT, poi MOUNT\n");
+        return -1;
+    }
+    int num_of_files = -1;
+    for(int i = 0;;++i){
+        if(args[i] != NULL) num_of_files+=1;
+        else{
+            break;
+        }
+    }
+    //printf("Devo creare %d files\n", num_of_files);
+    FileHandle* fh;
+    for(int i = 1; i <= num_of_files;++i){
+        fh = FileHandle_open(fs,args[i],PERM_CREAT|PERM_EXCL|PERM_READ|PERM_WRITE);
+        if(!fh){
+            printf("Errore nella creazione di %s\n", args[i]);
+            return -1;
+        }
+        if(FileHandle_close(fs,fh)<0){
+            return -1;
+        }
+        FileHandle_free(fs,fh);
+    }
     return 1;
 }
 
 int shell_cat(char **args) {
+    if(strcmp(args[0], "CAT") == 0 && args[1] == NULL){
+        printf("Inserire il nome del file da stampare\n");
+        return -1;
+    }
+    if(!fs || !fs->mounted){
+        printf("Prima FORMAT e MOUNT\n");
+        return -1;
+    }
+    char* filename = args[1];
+    Dir_Entry* target = Dir_Entry_find_name(fs,filename,fs->curr_dir);
+    if(!target){
+        printf("Nessun file trovato\n");
+        return -1;
+    }else{
+        if(target->is_dir == 0){
+            printf("Selezionare un file, non una directory\n");
+            return -1;
+        }else{
+            size_t len = target->file_size;
+            char to_print[len+1];
+            FileHandle* fh = FileHandle_open(fs,filename,PERM_READ);
+            if(FileHandle_read(fs,fh,to_print,len) < 0){
+                printf("Errore lettura da shell\n");
+                return -1;
+            }else{
+                to_print[len] = '\0';
+                fwrite(to_print,1,len,stdout);
+                //printf("%s",to_print);
+            }
+            return 1;
+        }
+    }
     return 1;
 }
 
@@ -278,7 +338,54 @@ int shell_ls(char **args) {
 }
 
 int shell_append(char **args) {
-    return 1;
+    if(strcmp(args[0],"APPEND") == 0 && args[1] == NULL){
+        printf("Occore specificare il file\n");
+        return -1;
+    }
+    if(!fs || !fs->mounted){
+        printf("Prima FORMAT e MOUNT\n");
+        return -1;
+    }
+    char* filename = args[1];
+    Dir_Entry* target = Dir_Entry_find_name(fs,filename,fs->curr_dir);
+    if(target){
+        if(target->is_dir == 0){
+            printf("Non è possibile usare append su una cartella\n");
+            return -1;
+        }else{
+            FileHandle* fh;
+            char to_append[256] = {0};
+            strcpy(to_append,args[2]);
+            strcat(to_append," ");
+            for(int i = 3;args[i] != NULL;i++){
+                strcat(to_append,args[i]);
+                strcat(to_append," ");
+            }
+            strcat(to_append, "\n");
+            if(target->file_size == 0){
+                fh = FileHandle_open(fs,filename,PERM_WRITE);
+                if(!fh) return -1;
+                if(FileHandle_write(fs,fh,to_append,strlen(to_append)) < 0){
+                    printf("problemi in scrittura da shell\n");
+                    return -1;
+                }
+            }else{
+                fh = FileHandle_open(fs,filename,PERM_APPEND|PERM_WRITE);
+                if(!fh) return -1;
+                if(FileHandle_write(fs,fh,to_append,strlen(to_append)) < 0){
+                    printf("problemi in scrittura da shell\n");
+                    return -1;
+                }
+            }
+            if(FileHandle_close(fs,fh)<0) return -1;
+            FileHandle_free(fs,fh);
+            return 1;
+        }
+    }else if(!target){
+        printf("Nessun file corrispondente a questo nome\n");
+        return -1;
+    }
+    return -1;
 }
 
 int shell_rm(char **args) {
@@ -287,9 +394,7 @@ int shell_rm(char **args) {
 
 int shell_help(char **args) {
     printf("Comandi disponibili:\n");
-    for(int i = 0; i < CMD_SIZE; i++) {
-        printf("  %s\n", commands[i]);
-    }
+    printf( "FORMAT <disco>\nMOUNT <disco>\nUNMOUNT \nMKDIR <dir> \nCD <dest> \nTOUCH <file> \nCAT <file> \nLS / LS <dir> \nAPPEND <file> <testo> \nRM <file> \nHELP\nCLOSE\n");
     return 1;
 }
 

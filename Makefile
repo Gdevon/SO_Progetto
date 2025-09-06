@@ -21,4 +21,4 @@ run: run.c $(LIBS)
 	$(CC) $(CCOPTS) -o $@ $^
 clean:
 	@echo "rimuovo i .o"
-		rm -rf *.o *.fs *~ $(LIBS) $(BINS)
+		rm -rf test test2 *.o *.fs *~ $(LIBS) $(BINS)
