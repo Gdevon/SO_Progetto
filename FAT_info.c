@@ -30,3 +30,28 @@ uint16_t FAT_find_next_block(FileSystem* fs, uint16_t block_id){
     }
     return DATA_START_BLOCK + next_idx;
 }
+int FAT_free_chain(FileSystem* fs, uint16_t first_block) {
+    if (!fs) {
+        print_error(FS_NOTINIT);
+        return -1;
+    }
+    if(!fs->mounted){
+        print_error(DISK_UNMOUNTED);
+        return -1;
+    }
+    if (first_block < DATA_START_BLOCK) {
+        return 0; 
+    }
+    uint16_t curr_block = first_block;
+    while (curr_block != FAT_BLOCK_END && curr_block != FAT_FREE_BLOCK && curr_block != FAT_BAD) {
+        if(curr_block < DATA_START_BLOCK || curr_block >= (DATA_START_BLOCK+DATA_BLOCKS)){
+            print_error(INVALID_BLOCK);
+            return -1;
+        }
+        uint16_t fat_idx = curr_block - DATA_START_BLOCK;
+        uint16_t next_block = fs->fat[fat_idx];
+        fs->fat[fat_idx] = FAT_FREE_BLOCK;
+        curr_block = next_block;
+    }
+    return 1;
+}

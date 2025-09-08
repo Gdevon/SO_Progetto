@@ -88,7 +88,8 @@ int FileHandle_close(FileSystem* fs, FileHandle *fh){
     }if(!fh->open){
         print_error(FH_NOTOPEN);
         return -1;
-    }ListItem* current = fs->handles.first;
+    }
+    ListItem* current = fs->handles.first;
     while(current){
         Handle_Item *h_item = (Handle_Item*)current;
         if(h_item->handle == fh && h_item->type == FILE_HANDLE){
@@ -96,18 +97,12 @@ int FileHandle_close(FileSystem* fs, FileHandle *fh){
             List_detach(&fs->handles,current);
             free(h_item);
             //printf("Close di %s effettuata\n", fh->dir->filename);
-            return 1;
+            break;
         }
         current = current->next;
     }
-    print_error(FH_NOTOPEN);
-    return 1;
-}
-void FileHandle_free(FileSystem* fs, FileHandle* fh){
-    if(fh->open){
-        FileHandle_close(fs,fh);
-    }
     free(fh);
+    return 1;
 }
 
 int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_to_write) {
@@ -366,6 +361,10 @@ int FileHandle_delete(FileSystem* fs, char* filename){
         print_error(FILE_NOT_FOUND);
         return -1;
     }
+    if(entry->is_dir == 0){
+        print_error(NOT_A_FILE);
+        return -1;
+    }
     ListItem* curr = fs->handles.first;
     while(curr){
         Handle_Item* item = (Handle_Item*) curr;
@@ -378,17 +377,10 @@ int FileHandle_delete(FileSystem* fs, char* filename){
         }
         curr = curr->next;
     }
-    //printf("nella delete 1\n");
-    uint16_t curr_block = entry->first_block;
-    while(curr_block != FAT_BLOCK_END && curr_block != FAT_FREE_BLOCK && curr_block != FAT_BAD){
-        uint16_t next_block = FAT_find_next_block(fs,curr_block);
-        if(next_block == FAT_BAD){
-            return -1;
-        }
-        fs->fat[curr_block-DATA_START_BLOCK] = FAT_FREE_BLOCK;
-        curr_block = next_block;
-            //printf("nella delete 2\n");
 
+    if(FAT_free_chain(fs,entry->first_block)<0){
+        printf("Errore filehandle delete lib fat\n");
+        return -1;
     }
     memset(entry,0,sizeof(Dir_Entry));
     entry->first_block = FAT_FREE_BLOCK;

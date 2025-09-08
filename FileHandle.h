@@ -16,7 +16,7 @@ typedef struct{
 
 FileHandle* FileHandle_open(FileSystem *, char*,Permission);
 int FileHandle_close(FileSystem* ,FileHandle*);
-void FileHandle_free(FileSystem* , FileHandle* );
+//void FileHandle_free(FileSystem* , FileHandle* );
 void FileHandle_print(FileHandle*);
 int FileHandle_write(FileSystem*, FileHandle* , char* ,size_t );
 int FileHandle_read(FileSystem*, FileHandle*, char*,size_t);

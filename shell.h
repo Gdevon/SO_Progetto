@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "Extern_fs.h"
 #define MAX_ARGS 10
 #define CMD_SIZE 12
 #define MAX_ARG_LEN 256

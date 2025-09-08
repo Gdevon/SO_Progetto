@@ -14,3 +14,5 @@ int DirHandle_close(FileSystem* , DirHandle* );
 void DirHandle_free(FileSystem* , DirHandle* );
 void DirHandle_list(FileSystem*,DirHandle*);
 int DirHandle_delete(FileSystem*,char*);
+int DirHandle_delete_recursive(FileSystem*,uint16_t);
+int DirHandle_delete_force(FileSystem*,char*);

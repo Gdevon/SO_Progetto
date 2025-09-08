@@ -20,7 +20,8 @@ typedef enum{
     PERM_READ = 2,
     PERM_APPEND = 4,
     PERM_CREAT = 8,
-    PERM_EXCL = 16
+    PERM_EXCL = 16,
+    PERM_NO = 0
 }Permission;
 void Dir_Entry_create(FileSystem*, Dir_Entry*, char*, uint16_t, int);
 int Dir_Entry_fill(Dir_Entry*);

@@ -117,12 +117,12 @@ void Dir_Entry_list_aux(Dir_Entry* e){
         get_time(e->modify_time,modify_h);
         get_date(e->creation_date,creation_d);
         if(type == 0){
-            printf("%s  <DIR>   %02d-%02d-%04d %02d:%02d\n",
+            printf("nome: %s  <DIR>   %02d-%02d-%04d %02d:%02d\n",
                    e->filename,
                    creation_d[0], creation_d[1], creation_d[2],
                    creation_h[0], creation_h[1]);
         } else {  
-            printf("%s >FILE> %uB  %02d-%02d-%04d %02d:%02d\n",
+            printf("nome: %s <FILE> %uB  %02d-%02d-%04d %02d:%02d\n",
                    e->filename,
                    e->file_size,
                    creation_d[0], creation_d[1], creation_d[2],
@@ -225,7 +225,6 @@ int Dir_Entry_change(FileSystem* fs, char* name){
         return -1;
     }
     fs->curr_dir = target->first_block;
-    //update_access_time(target);
     //printf("Cambiato in directory '%s' (blocco %u)\n", name, fs->curr_dir);
     return 1;
 }
