@@ -5,6 +5,7 @@
 #include "DIR_Entry.h"
 #include "FAT_info.h"
 #include "ListHandle.h"
+#include "Colors.h"
 
 DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
     if(!fs){

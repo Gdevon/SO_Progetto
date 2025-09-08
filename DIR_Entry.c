@@ -7,6 +7,7 @@
 #include "Errors.h"
 #include "FS_info.h"
 #include "FAT_info.h"
+#include "Colors.h"
 
 void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uint16_t start, int type) {
     if (!fs || !free_entry || !filename) {

@@ -11,7 +11,7 @@
 #include "FS_info.h"
 #include "FAT_info.h"
 #include "DIR_Entry.h"
-
+#include "Colors.h"
 int disk_creat(char* disk_name, uint32_t size){
     if(size != DISK_SIZE){
         //printf("size [%u] non corrispondente a DISK_SIZE: [%u]\n",size,DISK_SIZE);
@@ -86,7 +86,7 @@ int disk_mount(FileSystem* fs, char* disk_n){
     fs->mounted = 1;
     fs->curr_dir = ROOT_DIR_START_BLOCK;
     List_init(&fs->handles);
-    //printf("Disk_Mount ha avuto successo\n");
+    printf(BLU "Disco montato correttamente\n" RESET);
     return 1;
 }
 int disk_unmount(FileSystem* fs){

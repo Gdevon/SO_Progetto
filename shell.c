@@ -8,6 +8,7 @@
 #include "Extern_fs.h"
 #include "DirHandle.h"
 #include "FileHandle.h"
+#include "Colors.h"
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
 "MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE"};
 int (*cmd_pointer[])(char**) = {
@@ -29,7 +30,7 @@ void shell_loop(){
     char **args;
     int status;
     do{
-        printf("$hell, digita comando: ");
+        printf(GRN"$hell, digita comando: "RESET);
         line = shell_read();
         if(line == NULL){
             continue;
@@ -68,7 +69,7 @@ char** shell_split_line(char* line){
 }
 int shell_exec(char** args){
     if(args[0] == NULL){
-        printf("Nessun comando inserito\n");
+        printf( RED "Nessun comando inserito\n" RESET);
         return 1;
     }
     //for (int i = 0; args[i] != NULL; i++) {
@@ -80,7 +81,7 @@ int shell_exec(char** args){
             return (*cmd_pointer[i])(args);
         }
     }
-    puts("Comando non supportato, per maggiori informazoni : HELP");
+    puts(BLU "Comando non supportato, per maggiori informazoni : HELP" RESET);
     return 1;
 }
 char* shell_read(){
@@ -97,18 +98,18 @@ char* shell_read(){
 }
 int shell_format(char **args) {
     if(strcmp(args[0], "FORMAT") != 0 || args[1] == NULL){
-        printf("Inserire : FORMAT <name>\n");
+        printf(BLU"Inserire : FORMAT <name>\n"RESET);
         return -1;
     }
     if (strcmp(args[0], "FORMAT") == 0) {
         if (args[1] == NULL) {
-            printf("Inserire nome disco: FORMAT <name> \n");
+            printf(BLU"Inserire nome disco: FORMAT <name>, per semplicità aggiungere .fs al nome del disco \n"RESET);
             return -1;
         }
         char *fs_name = args[1];
         int fd = open(fs_name, O_RDONLY);
         if (fd >= 0) {
-        printf("Disco '%s' esistente, formatto...\n", fs_name);
+        printf(GRN"Disco '%s' esistente, formatto...\n",fs_name );
         close(fd);
         if (fs && fs->mounted) {
             if (disk_unmount(fs) < 0) {
@@ -116,7 +117,7 @@ int shell_format(char **args) {
             }
         }
         if (unlink(fs_name) < 0) {
-            perror("Errore nella rimozione del disco");
+            perror(RED"Errore nella rimozione del disco"RESET);
             return -1;
         }
     }
@@ -129,7 +130,7 @@ int shell_format(char **args) {
         if (disk_creat(fs_name, DISK_SIZE) < 0) {
             return -1;
         }
-        printf("Disco formattato correttamente\n");
+        printf(BLU"Disco formattato correttamente\n"RESET);
         return 1;
     }
     return -1;
@@ -137,12 +138,12 @@ int shell_format(char **args) {
 
 int shell_mount(char **args) {
     if( strcmp(args[0],"MOUNT") != 0 || args[1] == NULL){
-        printf("Inserire: MOUNT <name>\n");
+        printf(RED"Inserire: MOUNT <name>\n"RESET);
         return -1;
     }
     if( strcmp(args[0],"MOUNT") == 0){
         if(args[1] == NULL){
-            printf("Inserire nome disco: MOUNT <name>\n");
+            printf(RED"Inserire nome disco: MOUNT <name>\n"RESET);
             return -1;
         }
         if(fs && fs->mounted){
@@ -159,11 +160,11 @@ int shell_mount(char **args) {
         char* disk_name = args[1];
         int fd = open(disk_name,O_RDONLY);
         if(fd < 0){
-            printf("Disco non esistente\n");
+            printf(RED "Disco non esistente\n" RESET);
             return -1;
         }
         if(close(fd) < 0 ){
-            printf("Erorre chiusura in shellmount\n");
+            printf(BLU"Erorre chiusura in shellmount\n"RESET);
         }
         if(disk_mount(fs,disk_name) < 0){
             return -1;
@@ -175,30 +176,31 @@ int shell_mount(char **args) {
 
 int shell_unmount(char **args) {
     if(strcmp(args[0],"UNMOUNT") == 0 && args[1]!= NULL){
-        printf("Digitare solo UNMOUNT\n");
+        printf(RED"Digitare solo UNMOUNT\n"RESET);
         return -1;
     }
     if(strcmp(args[0], "UNMOUNT") == 0){
        if(!fs || !fs->mounted){
-        printf("Nessun disco montato\n");
+        printf(RED"Nessun disco montato\n"RESET);
        }else{
         if(disk_unmount(fs)< 0){
             return -1;
         }else{
+            printf(BLU"Disco smontato correttamente\n"RESET);
             return 1;
         }
        }
     }
-    printf("errore shell unmoun\n");
+    printf(RED"Errore shell unmount\n"RESET);
     return - 1;
 }
 
 int shell_mkdir(char **args) {
     if(strcmp(args[0],"MKDIR")== 0 && args[1] == NULL){
-        printf("Specificare nome/i del file: MKDIR <dir>");
+        printf(RED"Specificare nome/i del file: MKDIR <dir>"RESET);
     }
     if(!fs || !fs->mounted){
-        printf("Prima FORMAT, poi MOUNT\n");
+        printf(RED"Prima FORMAT, poi MOUNT\n"RESET);
         return -1;
     }
     int num_of_dirs = -1;
@@ -213,18 +215,23 @@ int shell_mkdir(char **args) {
     for(int i = 1; i <= num_of_dirs;++i){
         dirname = args[i];
         if(strstr(dirname,".") != NULL){
-            printf("Una cartella non può contenere un . nel nome\n");
+            printf(RED "Una cartella non può contenere un . nel nome\n" RESET);
             return -1;
         }
         dh = DirHandle_open(fs,dirname,PERM_CREAT|PERM_EXCL);
         if(!dh){
-            printf("Errore nella creazione di %s\n", dirname);
+            printf(RED"Errore nella creazione di %s\n", dirname );
             return -1;
         }
         if(DirHandle_close(fs,dh)<0){
             return -1;
         }
         DirHandle_free(fs,dh);
+    }
+    if(num_of_dirs > 1){
+        printf(BLU"Cartelle create correttamente\n"RESET);
+    }else{
+        printf(BLU"Cartella creata correttamente\n"RESET);
     }
     return 1;
 }
@@ -252,10 +259,10 @@ int shell_cd(char **args) {
 
 int shell_touch(char **args) {
     if(strcmp(args[0],"TOUCH")== 0 && args[1] == NULL){
-        printf("Specificare nome/i del file: TOUCH <file>");
+        printf(RED"Specificare nome/i del file: TOUCH <file>"RESET);
     }
     if(!fs || !fs->mounted){
-        printf("Prima FORMAT, poi MOUNT\n");
+        printf(RED"Prima FORMAT, poi MOUNT <disk>\n"RESET);
         return -1;
     }
     int num_of_files = -1;
@@ -270,7 +277,7 @@ int shell_touch(char **args) {
     for(int i = 1; i <= num_of_files;++i){
         fh = FileHandle_open(fs,args[i],PERM_CREAT|PERM_EXCL);
         if(!fh){
-            printf("Errore nella creazione di %s\n", args[i]);
+            printf(RED"Errore nella creazione di %s\n, il file già esiste", args[i] );
             return -1;
         }
         if(FileHandle_close(fs,fh)<0){
@@ -278,33 +285,38 @@ int shell_touch(char **args) {
         }
 
     }
+    if(num_of_files > 1){
+        printf(BLU "Files creati correttamente\n"RESET);
+    }else{
+        printf(BLU"File creato correttamente\n"RESET);
+    }
     return 1;
 }
 
 int shell_cat(char **args) {
     if(strcmp(args[0], "CAT") == 0 && args[1] == NULL){
-        printf("Inserire il nome del file da stampare\n");
+        printf(RED"Inserire il nome del file da stampare\n"RESET);
         return -1;
     }
     if(!fs || !fs->mounted){
-        printf("Prima FORMAT e MOUNT\n");
+        printf(RED"Prima FORMAT e MOUNT\n"RESET);
         return -1;
     }
     char* filename = args[1];
     Dir_Entry* target = Dir_Entry_find_name(fs,filename,fs->curr_dir);
     if(!target){
-        printf("Nessun file trovato\n");
+        printf(RED"Nessun file trovato\n"RESET);
         return -1;
     }else{
         if(target->is_dir == 0){
-            printf("Selezionare un file, non una directory\n");
+            printf(RED"Selezionare un file, non una directory\n"RESET);
             return -1;
         }else{
             size_t len = target->file_size;
             char to_print[len+1];
             FileHandle* fh = FileHandle_open(fs,filename,PERM_READ);
             if(FileHandle_read(fs,fh,to_print,len) < 0){
-                printf("Errore lettura da shell\n");
+                printf(RED"Errore lettura da shell\n"RESET);
                 return -1;
             }else{
                 to_print[len] = '\0';
@@ -322,7 +334,7 @@ int shell_ls(char **args) {
         return -1;
     }
     if(!fs || !fs->mounted){
-        printf("Prima è necessario creare o fare la mount del disco\n");
+        printf(RED"Prima è necessario creare o fare la mount del disco\n"RESET);
         return -1;
     }
     if(args[1] == NULL){
@@ -332,7 +344,7 @@ int shell_ls(char **args) {
         char* to_list = args[1];
         Dir_Entry* target = Dir_Entry_find_name(fs,to_list,fs->curr_dir);
         if(!target){
-            printf("Dir non esistente");
+            printf(RED"Dir non esistente"RESET);
         }else{
             Dir_Entry_list(fs,target->first_block);
         }
@@ -343,18 +355,18 @@ int shell_ls(char **args) {
 
 int shell_append(char **args) {
     if(strcmp(args[0],"APPEND") == 0 && args[1] == NULL){
-        printf("Occore specificare il file\n");
+        printf(RED"Occore specificare il file\n"RESET);
         return -1;
     }
     if(!fs || !fs->mounted){
-        printf("Prima FORMAT e MOUNT\n");
+        printf(RED"Prima FORMAT e MOUNT\n"RESET);
         return -1;
     }
     char* filename = args[1];
     Dir_Entry* target = Dir_Entry_find_name(fs,filename,fs->curr_dir);
     if(target){
         if(target->is_dir == 0){
-            printf("Non è possibile usare append su una cartella\n");
+            printf(RED"Non è possibile usare append su una cartella\n"RESET);
             return -1;
         }else{
             FileHandle* fh;
@@ -390,7 +402,7 @@ int shell_append(char **args) {
             return 1;
         }
     }else if(!target){
-        printf("Nessun file corrispondente a questo nome\n");
+        printf(RED"Nessun file corrispondente a questo nome\n"RESET);
         return -1;
     }
     return -1;
@@ -399,11 +411,11 @@ int shell_append(char **args) {
 
 int shell_rm(char **args) {
     if (strcmp(args[0], "RM") == 0 && args[1] == NULL) {
-        printf("Specificare almeno un file/cartella da rimuovere\n");
+        printf(RED"Specificare almeno un file/cartella da rimuovere\n"RESET);
         return -1;
     }
     if (!fs || !fs->mounted) {
-        printf("Prima FORMAT, poi MOUNT\n");
+        printf(RED"Prima FORMAT, poi MOUNT\n"RESET);
         return -1;
     }    
     int rf = 0;
@@ -412,7 +424,7 @@ int shell_rm(char **args) {
         rf = 1;
         start = 2;
         if (args[2] == NULL) {
-            printf("Specificare almeno un file/cartella\n");
+            printf(RED"Specificare almeno un file/cartella\n"RESET);
             return -1;
         }
     }        
@@ -427,12 +439,12 @@ int shell_rm(char **args) {
         handle_name = args[start + i];  
         de = Dir_Entry_find_name(fs, handle_name, fs->curr_dir);
         if (!de) {
-            printf("Non esiste %s\n", handle_name);
+            printf(RED"Non esiste %s\n", handle_name);
             continue;
         }
         if (de->is_dir == 0) { 
             if (rf) {
-                printf("Attenzione: eliminare una cartella cancellerà anche il suo contenuto, procedere ugualmente? [Y/n]\n");
+                printf(RED"Attenzione: eliminare una cartella cancellerà anche il suo contenuto, procedere ugualmente? [Y/n]\n"RESET);
                 ans = getchar();
                 while (getchar() != '\n');
                 
@@ -441,32 +453,32 @@ int shell_rm(char **args) {
                         printf("Errore in delete_force per %s\n", handle_name);
                         return -1;
                     }
-                    printf("Directory %s eliminata\n", handle_name);
+                    printf(BLU"Directory %s eliminata\n", handle_name);
                 } else {
-                    printf("Eliminazione di %s annullata\n", handle_name);
+                    printf(BLU"Eliminazione di %s annullata\n", handle_name);
                     continue;
                 }
             } else {
                 if (DirHandle_delete(fs, handle_name) < 0) {
-                    printf("Errore nell'eliminazione della directory %s\n", handle_name);
+                    printf(RED"Errore nell'eliminazione della directory %s\n", handle_name);
                     return -1;
                 }
-                printf("Directory %s eliminata\n", handle_name);
+                printf(BLU"Directory %s eliminata\n", handle_name);
             }
         } 
         else { 
             if (FileHandle_delete(fs, handle_name) < 0) {
-                printf("Errore nell'eliminazione del file %s\n", handle_name);
+                printf(RED"Errore nell'eliminazione del file %s\n", handle_name);
                 return -1;
             }
-            printf("File %s eliminato\n", handle_name);
+            printf(BLU"File %s eliminato\n", handle_name);
         }
     }
     return 1;
 }
 
 int shell_help(char **args) {
-    printf("Comandi disponibili:\n");
+    printf(BLU"Comandi disponibili:\n"RESET);
     printf( "FORMAT <disco>\nMOUNT <disco>\nUNMOUNT \nMKDIR <dir> \nCD <dest> \nTOUCH <file> \nCAT <file> \nLS / LS <dir> \nAPPEND <file> <testo> \nRM <file> \nHELP\nCLOSE\n");
     return 1;
 }
@@ -483,6 +495,7 @@ int shell_close(char **args) {
         }
         fs_free(&fs);
         fs = NULL;
+        printf(BLU "Chiusura effettuata correttamente\n" RESET);
         return 0;
     }
     printf("shell close error\n");
