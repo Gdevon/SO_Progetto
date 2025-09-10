@@ -10,7 +10,7 @@
 #include "FileHandle.h"
 #include "Colors.h"
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
-"MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE"};
+"MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE","CHMOD"};
 int (*cmd_pointer[])(char**) = {
     &shell_format,
     &shell_mount,
@@ -24,6 +24,7 @@ int (*cmd_pointer[])(char**) = {
     &shell_rm,
     &shell_help,
     &shell_close,
+    &shell_chmod
 };
 void shell_loop(){
     char *line;
@@ -31,6 +32,7 @@ void shell_loop(){
     int status;
     do{
         printf(GRN"$hell, digita comando: "RESET);
+        fflush(stdout);
         line = shell_read();
         if(line == NULL){
             continue;
@@ -72,10 +74,6 @@ int shell_exec(char** args){
         printf( RED "Nessun comando inserito\n" RESET);
         return 1;
     }
-    //for (int i = 0; args[i] != NULL; i++) {
-    //printf("arg[%d] = '%s'\n", i, args[i]);
-    //}
-
     for(int i=0;i<CMD_SIZE;++i){
         if(strcmp(args[0], commands[i]) == 0){
             return (*cmd_pointer[i])(args);
@@ -97,66 +95,55 @@ char* shell_read(){
     return line;
 }
 int shell_format(char **args) {
-    if(strcmp(args[0], "FORMAT") != 0 || args[1] == NULL){
-        printf(BLU"Inserire : FORMAT <name>\n"RESET);
+    if(args_count(args) != 2){
+        printf(RED "Uso corretto: FORMAT <diskname>\n"RESET);
+        printf(BLU"Si consiglia di inserire .fs al nome del disco\n"RESET);
         return -1;
     }
-    if (strcmp(args[0], "FORMAT") == 0) {
-        if (args[1] == NULL) {
-            printf(BLU"Inserire nome disco: FORMAT <name>, per semplicità aggiungere .fs al nome del disco \n"RESET);
-            return -1;
-        }
-        char *fs_name = args[1];
-        int fd = open(fs_name, O_RDONLY);
-        if (fd >= 0) {
-        printf(GRN"Disco '%s' esistente, formatto...\n",fs_name );
-        close(fd);
-        if (fs && fs->mounted) {
-            if (disk_unmount(fs) < 0) {
-                return -1;
-            }
-        }
-        if (unlink(fs_name) < 0) {
-            perror(RED"Errore nella rimozione del disco"RESET);
+    char *fs_name = args[1];
+    int fd = open(fs_name, O_RDONLY);
+    if (fd >= 0) {
+    printf(GRN"Disco '%s' esistente, formatto...\n",fs_name);
+    close(fd);
+    if (fs && fs->mounted) {
+        if (disk_unmount(fs) < 0) {
             return -1;
         }
     }
+    if (unlink(fs_name) < 0) {
+        perror(RED"Errore nella rimozione del disco"RESET);
+        return -1;
+    }
+    }
+    if (!fs) {
+        fs = fs_init();
         if (!fs) {
-            fs = fs_init();
-            if (!fs) {
-                return -1;
-            }
-        }
-        if (disk_creat(fs_name, DISK_SIZE) < 0) {
             return -1;
         }
-        printf(BLU"Disco formattato correttamente\n"RESET);
-        return 1;
     }
-    return -1;
+    if (disk_creat(fs_name, DISK_SIZE) < 0) {
+        return -1;
+    }
+    printf(BLU"Disco formattato correttamente\n"RESET);
+    return 1;
 }
 
 int shell_mount(char **args) {
-    if( strcmp(args[0],"MOUNT") != 0 || args[1] == NULL){
-        printf(RED"Inserire: MOUNT <name>\n"RESET);
+    if(args_count(args) != 2){
+        printf(RED"Uso corretto: MOUNT <disk>\n"RESET);
         return -1;
     }
-    if( strcmp(args[0],"MOUNT") == 0){
-        if(args[1] == NULL){
-            printf(RED"Inserire nome disco: MOUNT <name>\n"RESET);
-            return -1;
-        }
-        if(fs && fs->mounted){
-            print_error(DISK_MOUNTED);
-            return -1;
-        }
+    if(fs && fs->mounted){
+        printf(BLU "Risulta già montato un disco con il nome %s\n"RESET,args[1]);
+        return -1;
+    }
+    if(!fs){
+        fs = fs_init();
         if(!fs){
-            fs = fs_init();
-            if(!fs){
-                print_error(FS_NOTINIT);
-                return -1;
-            }
+            print_error(FS_NOTINIT);
+            return -1;
         }
+    }
         char* disk_name = args[1];
         int fd = open(disk_name,O_RDONLY);
         if(fd < 0){
@@ -170,37 +157,34 @@ int shell_mount(char **args) {
             return -1;
         }
         return 1;
-    }
-    return -1;
 }
 
 int shell_unmount(char **args) {
-    if(strcmp(args[0],"UNMOUNT") == 0 && args[1]!= NULL){
-        printf(RED"Digitare solo UNMOUNT\n"RESET);
+    if(args_count(args) != 1){
+    printf(RED"Digitare solo UNMOUNT\n"RESET);
         return -1;
     }
-    if(strcmp(args[0], "UNMOUNT") == 0){
-       if(!fs || !fs->mounted){
+    if(!fs || !fs->mounted){
         printf(RED"Nessun disco montato\n"RESET);
-       }else{
+    }else{
         if(disk_unmount(fs)< 0){
             return -1;
         }else{
             printf(BLU"Disco smontato correttamente\n"RESET);
-            return 1;
+        return 1;
         }
-       }
     }
     printf(RED"Errore shell unmount\n"RESET);
     return - 1;
 }
 
 int shell_mkdir(char **args) {
-    if(strcmp(args[0],"MKDIR")== 0 && args[1] == NULL){
-        printf(RED"Specificare nome/i del file: MKDIR <dir>"RESET);
+    if(args_count(args)<= 1){
+        printf(RED"Specificare nome/i della/e cartella/e: MKDIR <dir>"RESET);
+        return -1;
     }
     if(!fs || !fs->mounted){
-        printf(RED"Prima FORMAT, poi MOUNT\n"RESET);
+        printf(RED"Per creare cartelle, prima occorre eseguire MOUNT <disk>\n"RESET);
         return -1;
     }
     int num_of_dirs = -1;
@@ -237,28 +221,28 @@ int shell_mkdir(char **args) {
 }
 
 int shell_cd(char **args) {
-    if(strcmp(args[0],"CD") == 0 && args[1] == NULL){
-        printf("Digitare CD <dest>\n");
+    if(args_count(args)!= 2){
+        printf(RED"Inserire la cartella da visitare: CD <dest>\n"RESET);
         return -1;
     }
     if(!fs){
-        printf("Prima FORMAT <disco>\n");
+        printf(RED"Prima usare FORMAT <disco>\n"RESET);
         return -1;
     }
     if(fs && !fs->mounted){
-        printf("Prima MOUNT <disco>\n");
+        printf(RED"Prima fare MOUNT <disco>\n"RESET);
         return -1;
     }
     char* dir_name = args[1];
     if(Dir_Entry_change(fs,dir_name) < 0){
-        printf("Errore nel cambio directory, esiste?\n");
+        printf(RED"Errore nel cambio directory, esiste?\n"RESET);
         return -1;
     }
     return 1;
 }
 
 int shell_touch(char **args) {
-    if(strcmp(args[0],"TOUCH")== 0 && args[1] == NULL){
+    if(args_count(args)<= 1){
         printf(RED"Specificare nome/i del file: TOUCH <file>"RESET);
     }
     if(!fs || !fs->mounted){
@@ -294,7 +278,7 @@ int shell_touch(char **args) {
 }
 
 int shell_cat(char **args) {
-    if(strcmp(args[0], "CAT") == 0 && args[1] == NULL){
+    if(args_count(args) != 2){
         printf(RED"Inserire il nome del file da stampare\n"RESET);
         return -1;
     }
@@ -315,36 +299,48 @@ int shell_cat(char **args) {
             size_t len = target->file_size;
             char to_print[len+1];
             FileHandle* fh = FileHandle_open(fs,filename,PERM_READ);
-            if(FileHandle_read(fs,fh,to_print,len) < 0){
-                printf(RED"Errore lettura da shell\n"RESET);
-                return -1;
-            }else{
+            if(fh){
+                FileHandle_read(fs,fh,to_print,len);
                 to_print[len] = '\0';
                 fwrite(to_print,1,len,stdout);
                 printf("\n");
+                FileHandle_close(fs,fh);
+                return 1;
             }
-            return 1;
+            else if(!fh){
+                printf(BLU"Usa: CHMOD %s PERM_READ\n"RESET, filename);
+                return -1;
+            }
         }
     }
     return 1;
 }
 
 int shell_ls(char **args) {
-    if(strcmp(args[0],"LS") != 0){
+    if(args_count(args) > 2){
+        printf(RED "uso corretto: LS <filename> (per listare permessi) / LS / LS <dir>\n"RESET);
         return -1;
     }
     if(!fs || !fs->mounted){
         printf(RED"Prima è necessario creare o fare la mount del disco\n"RESET);
         return -1;
     }
+    printf("------------------------------------------\n");
     if(args[1] == NULL){
-        printf("------------------------------------------\n");
         Dir_Entry_curr_list(fs);
     }else{
         char* to_list = args[1];
         Dir_Entry* target = Dir_Entry_find_name(fs,to_list,fs->curr_dir);
+        
         if(!target){
-            printf(RED"Dir non esistente"RESET);
+            printf(RED"Impossibile trovare un elemento con questo nome\n"RESET);
+        }
+        else if(target->is_dir == 1){
+            FileHandle* fh = FileHandle_open(fs,args[1],PERM_NO);
+            if(!fh) return -1;
+            FileHandle_print_perm(fh);
+            FileHandle_close(fs,fh);
+            return 1;
         }else{
             Dir_Entry_list(fs,target->first_block);
         }
@@ -354,8 +350,8 @@ int shell_ls(char **args) {
 }
 
 int shell_append(char **args) {
-    if(strcmp(args[0],"APPEND") == 0 && args[1] == NULL){
-        printf(RED"Occore specificare il file\n"RESET);
+    if(args_count(args) != 2){
+        printf(RED"Uso corretto: APPEND <file> <testo>\n"RESET);
         return -1;
     }
     if(!fs || !fs->mounted){
@@ -383,24 +379,20 @@ int shell_append(char **args) {
                 memmove(pos+1,pos+2,strlen(pos+2) + 1);
                 pos++;
             }
-            if(target->file_size == 0){
-                fh = FileHandle_open(fs,filename,PERM_WRITE);
-                if(!fh) return -1;
-                if(FileHandle_write(fs,fh,to_append,strlen(to_append)) < 0){
-                    printf("problemi in scrittura da shell\n");
-                    return -1;
-                }
-            }else{
-                fh = FileHandle_open(fs,filename,PERM_APPEND|PERM_WRITE);
-                if(!fh) return -1;
-                if(FileHandle_write(fs,fh,to_append,strlen(to_append)) < 0){
-                    printf("problemi in scrittura da shell\n");
-                    return -1;
-                }
+            fh = FileHandle_open(fs,filename,PERM_WRITE);
+            if(!fh){
+                printf(BLU"Usa: CHMOD %s PERM_WRITE\n"RESET, filename);
+                return -1;
             }
+            if(FileHandle_write(fs,fh,to_append,strlen(to_append)) < 0){
+                printf(RED"Problemi in scrittura da shell\n"RESET);
+                FileHandle_close(fs,fh);
+                return -1;
+            }  
             if(FileHandle_close(fs,fh)<0) return -1;
-            return 1;
-        }
+                printf(BLU"Testo aggiunto con successo\n"RESET);
+                return 1;
+            }
     }else if(!target){
         printf(RED"Nessun file corrispondente a questo nome\n"RESET);
         return -1;
@@ -410,7 +402,7 @@ int shell_append(char **args) {
 
 
 int shell_rm(char **args) {
-    if (strcmp(args[0], "RM") == 0 && args[1] == NULL) {
+    if (args_count(args)<=1) {
         printf(RED"Specificare almeno un file/cartella da rimuovere\n"RESET);
         return -1;
     }
@@ -479,25 +471,100 @@ int shell_rm(char **args) {
 
 int shell_help(char **args) {
     printf(BLU"Comandi disponibili:\n"RESET);
-    printf( "FORMAT <disco>\nMOUNT <disco>\nUNMOUNT \nMKDIR <dir> \nCD <dest> \nTOUCH <file> \nCAT <file> \nLS / LS <dir> \nAPPEND <file> <testo> \nRM <file> \nHELP\nCLOSE\n");
+    printf( "FORMAT <disco>\nMOUNT <disco>\nUNMOUNT \nMKDIR <dir> \nCD <dest> \nTOUCH <file> \nCAT <file> \nLS / LS <dir>/<file> \nAPPEND <file> <testo> \nRM <file> \nHELP\nCLOSE\nCHMOD <permessi>\n");
     return 1;
 }
 int shell_close(char **args) {
-    if(strcmp(args[0],"CLOSE") == 0){
-        if(!fs){
-            printf("Nessun fs da chiudere\n");
-            return 0;
-        }
-        if(fs->mounted){
-            if(disk_unmount(fs) < 0){
-                return -1;
-            }
-        }
-        fs_free(&fs);
-        fs = NULL;
-        printf(BLU "Chiusura effettuata correttamente\n" RESET);
+    if(args_count(args)!= 1){
+        printf(RED "Uso corretto: UNMOUNT\n");
+        return -1;
+    }
+    if(!fs){
+        printf("Nessun fs da chiudere\n");
         return 0;
     }
-    printf("shell close error\n");
-    return -1;
+    if(fs->mounted){
+        if(disk_unmount(fs) < 0){
+            return -1;
+        }
+    }
+    fs_free(&fs);
+    fs = NULL;
+    printf(BLU "Chiusura effettuata correttamente\n" RESET);
+    return 0;
+}
+int shell_chmod(char** args){
+    if(args_count(args)!=3){
+        printf(RED"Uso corretto: CHMOD <file> <perms>\n"RESET);
+        return -1;
+    }
+    char* filename = args[1];
+    char** perms = (char**)malloc(sizeof(char*)*2);
+    char* token = strtok(args[2],"|\n");
+    int count = 0;
+       while(count<=1 && token != NULL){
+        perms[count] = malloc(strlen(token)+1);
+        strcpy(perms[count],token);
+        count += 1;
+        token = strtok(NULL,"|\n");
+    }
+    FileHandle* fh;
+    if(count == 1){
+        if(strcmp(perms[0],"PERM_READ") == 0){
+            int p = PERM_READ;
+            fh = FileHandle_open(fs,filename,PERM_NO);
+            if(fh){
+                FileHandle_change_perm(fh,p);
+                printf("Permessi del fh: %d\n", fh->permission);
+                if(FileHandle_close(fs,fh)<0){
+                    return -1;
+                }
+                return 1;
+            }
+        }else if(strcmp(perms[0],"PERM_WRITE") ==0){
+            int p = PERM_WRITE;
+            fh = FileHandle_open(fs,filename,PERM_NO);
+            if(fh){
+                FileHandle_change_perm(fh,p);
+                printf("Permessi del fh: %d\n", fh->permission);
+                if(FileHandle_close(fs,fh)<0){
+                    return -1;
+                }
+                goto cleanup;
+            }else{
+                printf(RED"File Non trovato\n"RESET);
+            }
+        }else{
+            printf(BLU"Al momento sono supportati due permessi: PERM_READ|PERM_WRITE\n"RESET);
+            return -1;
+        }
+    }else{
+        if( ((strcmp(perms[0],"PERM_READ") == 0 ) && (strcmp(perms[1],"PERM_WRITE") == 0) )
+        || ((strcmp(perms[0],"PERM_WRITE") == 0 && (strcmp(perms[1],"PERM_READ") == 0)))){
+            int p = PERM_READ|PERM_WRITE;
+            fh = FileHandle_open(fs,filename,PERM_NO);
+            if(fh){
+                FileHandle_change_perm(fh,p);
+                printf(BLU"Permessi cambiati con successo"RESET);
+                if(FileHandle_close(fs,fh) <0 ) return -1;
+
+                goto cleanup;
+            }else{
+                printf(RED"File Non trovato\n"RESET);
+            }
+        }else{
+            printf(BLU "Permessi disponibili da impostare (una volta sola) PERM_READ|PERM_WRITE\n"RESET);
+        }
+    }
+    cleanup:
+    for(int i = 0; i < count;++i) free(perms[i]);
+    free(perms);
+    return 1;
+}
+int args_count(char** args){
+    int c = 0;
+    for(int i = 0;args[i] != NULL;++i){
+        c+=1;
+    }
+    return c;
 }

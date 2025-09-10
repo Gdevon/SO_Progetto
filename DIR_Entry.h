@@ -14,11 +14,11 @@ typedef struct {
     uint16_t access_date;    
     uint16_t creation_time;  
     uint8_t is_dir; //1 == file 0 == dir
+    uint8_t perms;
 } Dir_Entry;
 typedef enum{
     PERM_WRITE = 1,
     PERM_READ = 2,
-    PERM_APPEND = 4,
     PERM_CREAT = 8,
     PERM_EXCL = 16,
     PERM_NO = 0

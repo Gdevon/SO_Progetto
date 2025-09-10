@@ -24,3 +24,4 @@ int FileHandle_seek(FileHandle*,int,int);
 int FileHandle_tell(FileHandle*);
 int FileHandle_delete(FileSystem*, char*);
 int FileHandle_change_perm(FileHandle*,Permission);
+void FileHandle_print_perm(FileHandle*);

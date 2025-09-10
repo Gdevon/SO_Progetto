@@ -24,9 +24,7 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
         print_error(LONG_NAME);
         return NULL;
     }
-
     Dir_Entry* target = Dir_Entry_find_name(fs, filename,fs->curr_dir);
-
     if (target) {
         if (target->is_dir == 0) {
             print_error(NOT_A_FILE);
@@ -37,10 +35,17 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
             print_error(FILE_DUPLICATE);
             return NULL;
         }
-
+        if ((perm & PERM_READ) && !(target->perms & PERM_READ)) {
+            print_error(R_PERM);
+        return NULL;
+        }
+        if ((perm & PERM_WRITE) && !(target->perms & PERM_WRITE)) {
+        print_error(W_PERM);
+        return NULL;
+    }
     } else {
         if (!(perm & PERM_CREAT)) {
-            printf("debug");
+            //printf("debug");
             print_error(FILE_NOT_FOUND);
             return NULL;
         }
@@ -65,7 +70,7 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
         return NULL;
     }
     fh->dir = target;
-    if(perm & PERM_APPEND){
+    if(perm & PERM_WRITE){
         fh->byte_offset = target->file_size;
     }else{
     fh->byte_offset = 0;
@@ -135,10 +140,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
 
     size_t curr_offset = fh->byte_offset;
     uint16_t curr_block = fh->dir->first_block;
-    if(fh->permission & PERM_APPEND){ 
-        curr_offset = fh->dir->file_size;
-        fh->byte_offset = curr_offset;
-    }size_t written_bytes = 0;
+    size_t written_bytes = 0;
     if(curr_block == FAT_FREE_BLOCK || curr_block == FAT_BLOCK_END || curr_block == FAT_FREE_BLOCK){
         curr_block = FAT_find_free_block(fs);
         if(curr_block == (uint16_t) -1){
@@ -231,7 +233,7 @@ int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_
         return -1;
     }
     if (!(fh->permission & PERM_READ)) {
-        print_error(W_PERM);
+        print_error(R_PERM);
         return -1;
     }
     if(!buffer || size_to_read == 0){
@@ -399,5 +401,22 @@ int FileHandle_change_perm(FileHandle* fh, Permission perm){
         return -1;
     }
     fh->permission = perm;
+    fh->dir->perms = perm;
     return 1;
+}
+void FileHandle_print_perm(FileHandle* fh) {
+    if (!fh) {
+        printf("FileHandle nullo\n");
+        return;
+    }
+    printf("Permessi attivi per '%s': ", fh->dir->filename);
+    if (fh->permission == PERM_NO) {
+        printf("NESSUNO\n");
+        return;
+    }
+    if (fh->permission & PERM_READ)  printf("PERM_READ ");
+    if (fh->permission & PERM_WRITE) printf("PERM_WRITE ");
+    if (fh->permission & PERM_CREAT) printf("PERM_CREAT ");
+    if (fh->permission & PERM_EXCL)  printf("PERM_EXCL ");
+    printf("\n");
 }

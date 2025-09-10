@@ -70,7 +70,7 @@ void print_error(int err){
             printf("Numero del blocco > blocchi totali\n");
             break;
         case W_PERM:
-            printf("Permessi di scrittura non abilitati");
+            printf("Permessi di scrittura non abilitati\n");
             break;
         case NO_WRITE:  
             printf("Scrittura di 0 bytes o su buffer non allocato\n");

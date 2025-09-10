@@ -46,8 +46,9 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
     free_entry->creation_date = date_to_uint16(now);
     free_entry->access_date = free_entry->creation_date;
     free_entry->modify_time = free_entry->creation_time;
-    
+    free_entry->perms = PERM_READ;
     if (type == 1) {
+        free_entry->perms = PERM_NO;
        //printf("Creata entry per file: %s\n", filename);
     } else {
         //printf("Inizializzando directory '%s' nel blocco %u\n", filename, start);
@@ -64,6 +65,7 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
         dir_entries[0].creation_date = date_to_uint16(now);
         dir_entries[0].access_date = dir_entries[0].creation_date;
         dir_entries[0].modify_time = dir_entries[0].creation_time;
+        dir_entries[0].perms = PERM_READ;
         memset(&dir_entries[1], 0, sizeof(Dir_Entry));
         memset(dir_entries[1].filename, 0, 47);
         strcpy(dir_entries[1].filename, "..");
@@ -74,6 +76,7 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
         dir_entries[1].creation_date = date_to_uint16(now);
         dir_entries[1].access_date = dir_entries[1].creation_date;
         dir_entries[1].modify_time = dir_entries[1].creation_time;
+        dir_entries[1].perms = PERM_READ;
        // printf("Directory inizializzata\n");
     }
 }

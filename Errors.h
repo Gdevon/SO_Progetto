@@ -13,11 +13,8 @@
 #define DISK_MOUNT_CLOSE_FAIL -11
 #define DISK_UNMOUNTED -12
 #define FS_ALLOC_FAIL -13
-//Errore per cartella piena--find_free_dir_entry
 #define FULL_DIR -14
-//Errore per fat piena
 #define FULL_FAT -15
-//errrore nome troppo lungo
 #define LONG_NAME -16
 #define FH_ALLOC_FAIL -17
 #define FILE_DUPLICATE -18
