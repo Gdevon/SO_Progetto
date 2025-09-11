@@ -40,6 +40,7 @@ void Dir_Entry_curr_list(FileSystem*);
 int Dir_Entry_change(FileSystem*, char*);
 void update_modify_time(Dir_Entry*);
 void update_access_date(Dir_Entry* );
+void Dir_Entry_print_perm(Dir_Entry*);
 
 
 

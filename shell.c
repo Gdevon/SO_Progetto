@@ -9,6 +9,7 @@
 #include "DirHandle.h"
 #include "FileHandle.h"
 #include "Colors.h"
+int pres = 0;
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
 "MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE","CHMOD"};
 int (*cmd_pointer[])(char**) = {
@@ -336,11 +337,7 @@ int shell_ls(char **args) {
             printf(RED"Impossibile trovare un elemento con questo nome\n"RESET);
         }
         else if(target->is_dir == 1){
-            FileHandle* fh = FileHandle_open(fs,args[1],PERM_NO);
-            if(!fh) return -1;
-            FileHandle_print_perm(fh);
-            FileHandle_close(fs,fh);
-            return 1;
+            Dir_Entry_list_aux(target);
         }else{
             Dir_Entry_list(fs,target->first_block);
         }
@@ -350,7 +347,7 @@ int shell_ls(char **args) {
 }
 
 int shell_append(char **args) {
-    if(args_count(args) != 2){
+    if(args_count(args) <= 2){
         printf(RED"Uso corretto: APPEND <file> <testo>\n"RESET);
         return -1;
     }
@@ -470,6 +467,12 @@ int shell_rm(char **args) {
 }
 
 int shell_help(char **args) {
+    int* a = &pres;
+    if(*a == 0){
+        printf("Per iniziare: FORMAT <nomedisco.fs> -> MOUNT <nomedisco.fs>, oppure solo MOUNT <nomedisco.fs>, se già è stato creato in precedenza. Da qui possono essere eseguiti i comandi disponibili digitando HELP. Per chiudere -> UNMOUNT -> CLOSE\n");
+        *a = 1;
+        return 1;
+    }
     printf(BLU"Comandi disponibili:\n"RESET);
     printf( "FORMAT <disco>\nMOUNT <disco>\nUNMOUNT \nMKDIR <dir> \nCD <dest> \nTOUCH <file> \nCAT <file> \nLS / LS <dir>/<file> \nAPPEND <file> <testo> \nRM <file> \nHELP\nCLOSE\nCHMOD <permessi>\n");
     return 1;
@@ -515,22 +518,20 @@ int shell_chmod(char** args){
             fh = FileHandle_open(fs,filename,PERM_NO);
             if(fh){
                 FileHandle_change_perm(fh,p);
-                printf("Permessi del fh: %d\n", fh->permission);
                 if(FileHandle_close(fs,fh)<0){
                     return -1;
                 }
-                return 1;
+            }else{
+                printf(RED"File Non trovato\n"RESET);
             }
         }else if(strcmp(perms[0],"PERM_WRITE") ==0){
             int p = PERM_WRITE;
             fh = FileHandle_open(fs,filename,PERM_NO);
             if(fh){
                 FileHandle_change_perm(fh,p);
-                printf("Permessi del fh: %d\n", fh->permission);
                 if(FileHandle_close(fs,fh)<0){
                     return -1;
                 }
-                goto cleanup;
             }else{
                 printf(RED"File Non trovato\n"RESET);
             }
@@ -545,10 +546,7 @@ int shell_chmod(char** args){
             fh = FileHandle_open(fs,filename,PERM_NO);
             if(fh){
                 FileHandle_change_perm(fh,p);
-                printf(BLU"Permessi cambiati con successo"RESET);
                 if(FileHandle_close(fs,fh) <0 ) return -1;
-
-                goto cleanup;
             }else{
                 printf(RED"File Non trovato\n"RESET);
             }
@@ -556,9 +554,9 @@ int shell_chmod(char** args){
             printf(BLU "Permessi disponibili da impostare (una volta sola) PERM_READ|PERM_WRITE\n"RESET);
         }
     }
-    cleanup:
     for(int i = 0; i < count;++i) free(perms[i]);
     free(perms);
+    printf(BLU"Permessi cambiati con successo\n"RESET);
     return 1;
 }
 int args_count(char** args){

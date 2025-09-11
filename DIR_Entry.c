@@ -126,11 +126,12 @@ void Dir_Entry_list_aux(Dir_Entry* e){
                    creation_d[0], creation_d[1], creation_d[2],
                    creation_h[0], creation_h[1]);
         } else {  
-            printf("nome: %s <FILE> %uB  %02d-%02d-%04d %02d:%02d\n",
+            printf("nome: %s <FILE> %uB  %02d-%02d-%04d %02d:%02d ",
                    e->filename,
                    e->file_size,
                    creation_d[0], creation_d[1], creation_d[2],
                    modify_h[0], modify_h[1]);
+                   Dir_Entry_print_perm(e);
         }
     }
 }
@@ -262,4 +263,20 @@ void update_access_date(Dir_Entry* entry) {
     if (!entry) return;
     time_t now = time(NULL);
     entry->access_date = date_to_uint16(now);
+}
+void Dir_Entry_print_perm(Dir_Entry* fh) {
+    if (!fh) {
+        printf("FileHandle nullo\n");
+        return;
+    }
+    printf("Permessi attivi per '%s': ", fh->filename);
+    if (fh->perms == PERM_NO) {
+        printf("NESSUNO\n");
+        return;
+    }
+    if (fh->perms & PERM_READ)  printf("PERM_READ ");
+    if (fh->perms & PERM_WRITE) printf("PERM_WRITE ");
+    if (fh->perms & PERM_CREAT) printf("PERM_CREAT ");
+    if (fh->perms & PERM_EXCL)  printf("PERM_EXCL ");
+    printf("\n");
 }
