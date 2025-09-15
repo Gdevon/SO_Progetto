@@ -161,7 +161,7 @@ int fs_write_block(FileSystem* fs, uint16_t block_id, void* buffer){
     uint32_t offset = block_id*BLOCK_SIZE;
     memcpy(fs->disk+offset,buffer,BLOCK_SIZE);
    // printf("Blocco scritto\n");
-    return 0;
+    return 1;
 }
 int fs_read_block(FileSystem* fs, uint16_t block_id,void* buffer){
     if(!fs){

@@ -160,7 +160,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
             print_error(INVALID_BLOCK);
             return -1;
         }
-        uint16_t next_block = fs->fat[curr_block];
+        uint16_t next_block = fs->fat[curr_block-DATA_START_BLOCK];
         if(next_block == FAT_BAD){
             print_error(INVALID_BLOCK);
             return -1;
@@ -192,7 +192,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
         block_offset = 0;
 
         if (written_bytes < size_to_write) {
-            uint16_t next_block = fs->fat[curr_block];
+            uint16_t next_block = fs->fat[curr_block-DATA_START_BLOCK];
             if (next_block == FAT_BLOCK_END) {
                 next_block = FAT_find_free_block(fs);
                 if(next_block == FAT_BAD){
@@ -200,7 +200,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
                     return written_bytes;
                 }
                 fs->fat[curr_block - DATA_START_BLOCK] = next_block;
-                fs->fat[next_block] = FAT_BLOCK_END;
+                fs->fat[next_block-DATA_START_BLOCK] = FAT_BLOCK_END;
             }else if(next_block == FAT_BAD){
                 print_error(INVALID_BLOCK);
                 return written_bytes;
@@ -261,7 +261,7 @@ int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_
             print_error(INVALID_BLOCK);
             return -1;
         }
-        uint16_t next_block = fs->fat[curr_block];
+        uint16_t next_block = fs->fat[curr_block-DATA_START_BLOCK];
         if(next_block == FAT_BAD){
             print_error(INVALID_BLOCK);
             return -1;
@@ -284,7 +284,11 @@ int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_
         fh->byte_offset = curr_offset;
         block_offset = 0;
         if(read_bytes < size_to_read){
-            uint16_t next_block = fs->fat[curr_block];
+            //if(curr_block < DATA_START_BLOCK || curr_block >= DATA_START_BLOCK + DATA_BLOCKS){
+            //    print_error(INVALID_BLOCK);
+            //    return read_bytes;
+            //}
+            uint16_t next_block = fs->fat[curr_block-DATA_START_BLOCK];
             if(next_block == FAT_BLOCK_END){
                 return read_bytes;
             }

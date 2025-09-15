@@ -35,9 +35,9 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
     }
     
     memset(free_entry, 0, sizeof(Dir_Entry));
-    memset(free_entry->filename,0,47);
-    strncpy(free_entry->filename, filename,30);
-    free_entry->filename[30] = '\0';
+    memset(free_entry->filename,0,43);
+    strncpy(free_entry->filename, filename,43);
+    free_entry->filename[43] = '\0';
     free_entry->first_block = start;
     free_entry->is_dir = type;
     free_entry->file_size = 0;
@@ -56,7 +56,7 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
         Dir_Entry* dir_entries = (Dir_Entry*)(fs->data + block_offset);
         memset(fs->data + block_offset, 0, BLOCK_SIZE);   
         memset(&dir_entries[0],0,sizeof(Dir_Entry));  
-        memset(dir_entries[0].filename,0,47);  
+        memset(dir_entries[0].filename,0,43);  
         strcpy(dir_entries[0].filename, ".");
         dir_entries[0].is_dir = 0;  
         dir_entries[0].first_block = start;
@@ -67,7 +67,7 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
         dir_entries[0].modify_time = dir_entries[0].creation_time;
         dir_entries[0].perms = PERM_READ;
         memset(&dir_entries[1], 0, sizeof(Dir_Entry));
-        memset(dir_entries[1].filename, 0, 47);
+        memset(dir_entries[1].filename, 0, 43);
         strcpy(dir_entries[1].filename, "..");
         dir_entries[1].is_dir = 0;  
         dir_entries[1].first_block = fs->curr_dir;  
@@ -126,7 +126,7 @@ void Dir_Entry_list_aux(Dir_Entry* e){
                    creation_d[0], creation_d[1], creation_d[2],
                    creation_h[0], creation_h[1]);
         } else {  
-            printf("nome: %s <FILE> %uB  %02d-%02d-%04d %02d:%02d ",
+            printf("Nome: %s Tipo: <FILE>  Dimensione:%uB | Data creazione: %02d-%02d-%04d | Data ultima modifica: %02d:%02d | ",
                    e->filename,
                    e->file_size,
                    creation_d[0], creation_d[1], creation_d[2],
@@ -269,7 +269,7 @@ void Dir_Entry_print_perm(Dir_Entry* fh) {
         printf("FileHandle nullo\n");
         return;
     }
-    printf("Permessi attivi per '%s': ", fh->filename);
+    printf("Permessi attivi per %s: ", fh->filename);
     if (fh->perms == PERM_NO) {
         printf("NESSUNO\n");
         return;

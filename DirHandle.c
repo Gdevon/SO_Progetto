@@ -20,7 +20,7 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
         print_error(EMPTY_NAME);
         return NULL;
     }
-    if(strlen(dirname) > 46){
+    if(strlen(dirname) > 43){
         print_error(LONG_NAME);
         return NULL;
     }
@@ -142,7 +142,7 @@ int DirHandle_delete(FileSystem* fs, char* dirname){
         print_error(DISK_UNMOUNTED);
         return -1;
     }
-    if(strlen(dirname) > 46){
+    if(strlen(dirname) > 43){
         print_error(LONG_NAME);
         return -1;
     }
@@ -273,7 +273,7 @@ int DirHandle_delete_force(FileSystem* fs, char* dirname) {
         print_error(DISK_UNMOUNTED);
         return -1;
     }
-    if (strlen(dirname) > 46) {
+    if (strlen(dirname) > 43) {
         print_error(LONG_NAME);
         return -1;
     }

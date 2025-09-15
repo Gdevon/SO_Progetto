@@ -11,7 +11,7 @@
 #include "Colors.h"
 int pres = 0;
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
-"MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE","CHMOD"};
+"MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE","CHMOD","PWD"};
 int (*cmd_pointer[])(char**) = {
     &shell_format,
     &shell_mount,
@@ -25,23 +25,30 @@ int (*cmd_pointer[])(char**) = {
     &shell_rm,
     &shell_help,
     &shell_close,
-    &shell_chmod
+    &shell_chmod,
+    //&shell_pwd
 };
 void shell_loop(){
     char *line;
     char **args;
     int status;
     do{
-        printf(GRN"$hell, digita comando: "RESET);
-        fflush(stdout);
-        line = shell_read();
-        if(line == NULL){
-            continue;
-        }
-        args = shell_split_line(line);
-        status = shell_exec(args);
-        free(line);
-        free(args);
+    if(!pwd){
+        printf(GRN "$hell:" RESET " ");
+    }else if(strcmp(pwd, "/") == 0){
+        printf(GRN "$hell:" BLU "~" RESET WHITE "$ " RESET " ");
+    }else{
+        printf(GRN "$hell:" BLU "~%s " RESET WHITE "$:" RESET " ", pwd);
+    }
+    fflush(stdout);
+    line = shell_read();
+    if(line == NULL){
+        continue;
+    }
+    args = shell_split_line(line);
+    status = shell_exec(args);
+    free(line);
+    free(args);
     }while(status);
 }
 char** shell_split_line(char* line){
@@ -84,15 +91,27 @@ int shell_exec(char** args){
     return 1;
 }
 char* shell_read(){
+    size_t pos = 0;
+    size_t new_size = 1024;
     char* line = (char*)malloc(MAX_ARG_LEN);
     if(!line){
-        printf("shell_read fail\n");
+        printf(RED"Problemi di allocazione in shell_read\n"RESET);
         return NULL;
     }
-    if(fgets(line,MAX_ARG_LEN,stdin) == NULL){
-        free(line);
-        return NULL;
+    int c;
+    while ( (c=getchar()) != '\n' && (c != EOF)){
+        line[pos] = c;
+        pos++;
+        if(pos >= new_size-1){
+            new_size*=2;
+            line = realloc(line,new_size);
+            if(!line){
+                printf(RED"Errore nella realloc\n"RESET);
+                return NULL;
+            }
+        }
     }
+    line[pos] = '\0';
     return line;
 }
 int shell_format(char **args) {
@@ -239,30 +258,69 @@ int shell_cd(char **args) {
         printf(RED"Errore nel cambio directory, esiste?\n"RESET);
         return -1;
     }
+    if (strcmp(dir_name, "/") == 0) {
+        pwd[0] = '/';
+        pwd[1] = '\0';
+        pwd_pos = 1;
+    }else if (strcmp(dir_name, "..") == 0) {
+        if (pwd_pos > 1) {  
+            int i = pwd_pos - 2; 
+            while (i > 0 && pwd[i] != '/') i--;
+            if(i == 0){
+                pwd[1] = '\0';
+                pwd_pos = 1;
+            }else{
+                pwd[i] = '\0';
+                pwd_pos = i;
+                if(pwd_pos == 0){
+                    pwd[0] = '/';
+                    pwd[1] = '\0';
+                    pwd_pos = 1;
+                }
+            }
+        }
+    }else{
+        int len = strlen(dir_name);
+        if (pwd_pos > 1) {          
+            pwd[pwd_pos] = '/';
+            pwd_pos++;
+        }
+        strcpy(pwd+pwd_pos,dir_name);
+        pwd_pos += len;            
+    }
     return 1;
 }
 
 int shell_touch(char **args) {
     if(args_count(args)<= 1){
         printf(RED"Specificare nome/i del file: TOUCH <file>"RESET);
+        return -1;
     }
     if(!fs || !fs->mounted){
         printf(RED"Prima FORMAT, poi MOUNT <disk>\n"RESET);
         return -1;
     }
-    int num_of_files = -1;
-    for(int i = 0;;++i){
-        if(args[i] != NULL) num_of_files+=1;
-        else{
-            break;
+    int start = 1;
+    int perms = 0;
+    if( strcmp(args[1],"-P") == 0){
+        perms = 1;
+        if(args[2] == NULL){
+            printf(RED"Specificare almeno un file\n"RESET);
+            return -1;
         }
+        start = 2;
+    }
+    int num_of_files = 0;
+    for(int i = start;args[i] != NULL;++i){
+        num_of_files++;;
     }
     //printf("Devo creare %d files\n", num_of_files);
     FileHandle* fh;
-    for(int i = 1; i <= num_of_files;++i){
+    for( int i = start ;args[i] != NULL;++i){
         fh = FileHandle_open(fs,args[i],PERM_CREAT|PERM_EXCL);
+        if(perms)FileHandle_change_perm(fh,PERM_WRITE|PERM_READ);
         if(!fh){
-            printf(RED"Errore nella creazione di %s\n, il file già esiste", args[i] );
+            printf(RED"Errore nella creazione di %s, il file già esiste\n", args[i] );
             return -1;
         }
         if(FileHandle_close(fs,fh)<0){
@@ -357,46 +415,58 @@ int shell_append(char **args) {
     }
     char* filename = args[1];
     Dir_Entry* target = Dir_Entry_find_name(fs,filename,fs->curr_dir);
-    if(target){
-        if(target->is_dir == 0){
-            printf(RED"Non è possibile usare append su una cartella\n"RESET);
-            return -1;
-        }else{
-            FileHandle* fh;
-            char to_append[256] = {0};
-            strcpy(to_append,args[2]);
-            strcat(to_append," ");
-            for(int i = 3;args[i] != NULL;i++){
-                strcat(to_append,args[i]);
-                strcat(to_append," ");
-            }
-            char* pos = to_append;
-            while((pos = strstr(pos,"\\n")) != NULL){
-                *pos = '\n';
-                memmove(pos+1,pos+2,strlen(pos+2) + 1);
-                pos++;
-            }
-            fh = FileHandle_open(fs,filename,PERM_WRITE);
-            if(!fh){
-                printf(BLU"Usa: CHMOD %s PERM_WRITE\n"RESET, filename);
-                return -1;
-            }
-            if(FileHandle_write(fs,fh,to_append,strlen(to_append)) < 0){
-                printf(RED"Problemi in scrittura da shell\n"RESET);
-                FileHandle_close(fs,fh);
-                return -1;
-            }  
-            if(FileHandle_close(fs,fh)<0) return -1;
-                printf(BLU"Testo aggiunto con successo\n"RESET);
-                return 1;
-            }
-    }else if(!target){
-        printf(RED"Nessun file corrispondente a questo nome\n"RESET);
+    if(!target){
+        printf(RED"Non ho trovato nessun file con questo nome\n"RESET);
         return -1;
     }
-    return -1;
+    if(target->is_dir ==0){
+        printf(RED"Non è possibile usare APPEND su una cartella\n"RESET);
+        return -1;
+    }
+    size_t len = 0;
+    for(int i = 2;args[i] != NULL;++i){
+        len += strlen(args[i]);
+        if(args[i+1] != NULL ){
+            len++;
+        }
+    }
+    char* to_append = (char*)calloc(len+1,sizeof(char));
+    if(!to_append){
+        printf("Problemi nella calloc\n");
+        return -1;
+    }
+    for(int i=2;args[i] != NULL;++i){
+        strcat(to_append,args[i]);
+        if(args[i+1]!= NULL){
+            strcat(to_append, " ");
+        }
+    }
+    char* pos = to_append;
+    while((pos = strstr(pos,"\\n")) != NULL){
+        *pos = '\n';
+        memmove(pos+1,pos+2,strlen(pos+2) + 1);
+        pos++;
+    }
+    FileHandle* fh = FileHandle_open(fs,filename,PERM_WRITE);
+    if(!fh){
+        printf(BLU"Usa: CHMOD %s PERM_WRITE\n"RESET, filename);
+        free(to_append);
+        return -1;
+    }
+    if(FileHandle_write(fs,fh,to_append,strlen(to_append)) < 0){
+        printf(RED"Problemi in scrittura da shell\n"RESET);
+        FileHandle_close(fs,fh);
+        free(to_append);
+        return -1;
+    }  
+    if(FileHandle_close(fs,fh)<0) {
+        free(to_append);
+        return -1;
+    }
+    printf(BLU"Testo aggiunto con successo\n"RESET);
+    free(to_append);
+    return 1;
 }
-
 
 int shell_rm(char **args) {
     if (args_count(args)<=1) {
@@ -471,11 +541,27 @@ int shell_help(char **args) {
     if(*a == 0){
         printf("Per iniziare: FORMAT <nomedisco.fs> -> MOUNT <nomedisco.fs>, oppure solo MOUNT <nomedisco.fs>, se già è stato creato in precedenza. Da qui possono essere eseguiti i comandi disponibili digitando HELP. Per chiudere -> UNMOUNT -> CLOSE\n");
         *a = 1;
-        return 1;
     }
-    printf(BLU"Comandi disponibili:\n"RESET);
-    printf( "FORMAT <disco>\nMOUNT <disco>\nUNMOUNT \nMKDIR <dir> \nCD <dest> \nTOUCH <file> \nCAT <file> \nLS / LS <dir>/<file> \nAPPEND <file> <testo> \nRM <file> \nHELP\nCLOSE\nCHMOD <permessi>\n");
-    return 1;
+    printf(BLU"Comandi disponibili:\n\\n"RESET);
+    printf(
+    "FORMAT <disco>\n"
+    "MOUNT <disco>\n"
+    "UNMOUNT \n"
+    "CLOSE\n"
+    "\n"
+    "TOUCH [-P] <file/s> (inserire -P per attivare i permessi al momento della creazione)\n"
+    "CAT <file>\n"
+    "APPEND <file> <testo>\n"
+    "RM [-RF] <files/cartelle>\n"
+    "CHMOD <permessi>\n"
+    "\n"
+    "MKDIR <dir>\n"
+    "CD <dest>\n"
+    "LS / LS <dir/file>\n"
+    "\n"
+    "HELP\n"
+);
+return 1;
 }
 int shell_close(char **args) {
     if(args_count(args)!= 1){
@@ -487,9 +573,11 @@ int shell_close(char **args) {
         return 0;
     }
     if(fs->mounted){
-        if(disk_unmount(fs) < 0){
-            return -1;
-        }
+        //if(disk_unmount(fs) < 0){
+        //    return -1;
+        //}
+        printf(RED"Prima eseguire UNMOUNT DISCO\n"RESET);
+        return -1;
     }
     fs_free(&fs);
     fs = NULL;
@@ -566,3 +654,10 @@ int args_count(char** args){
     }
     return c;
 }
+/*int shell_pwd(char** args){
+    if(args_count(args) != 1){
+        return -1;
+    }
+    printf("La working directory è %s\n",pwd);
+    return 1;
+}*/

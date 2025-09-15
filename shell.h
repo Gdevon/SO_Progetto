@@ -4,7 +4,7 @@
 #include "Extern_fs.h"
 #define MAX_ARGS 10
 #define CMD_SIZE 13
-#define MAX_ARG_LEN 256
+#define MAX_ARG_LEN 1024
 void shell_loop();
 char** shell_split_line(char*);
 char* shell_read();
@@ -23,3 +23,4 @@ int shell_mount(char**);
 int shell_unmount(char**);
 int shell_chmod(char**);
 int args_count(char**);
+//int shell_pwd(char**);

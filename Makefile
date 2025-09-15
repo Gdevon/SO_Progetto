@@ -11,5 +11,5 @@ $(BINS): $(OBJS)
 	@$(CC) $(CCOPTS) -o $@ $^
 	@echo "Eseguibile creato: $@"
 clean:
-	@rm -f *.o *.fs *.FS *~ $(BINS)
+	@rm -f run *.o *.fs *.FS *~ $(TARGET)
 	@echo "Pulizia completata"

@@ -11,7 +11,7 @@ uint16_t FAT_find_free_block(FileSystem* fs){
     }return FAT_BLOCK_END;
 }
 uint16_t FAT_find_next_block(FileSystem* fs, uint16_t block_id){
-    if(!fs || !fs->mounted || block_id >= FAT_ENTRIES){
+    if(!fs || !fs->mounted){
         print_error(INVALID_BLOCK);
         return FAT_BAD;
     }
@@ -51,7 +51,10 @@ int FAT_free_chain(FileSystem* fs, uint16_t first_block) {
         uint16_t fat_idx = curr_block - DATA_START_BLOCK;
         uint16_t next_block = fs->fat[fat_idx];
         fs->fat[fat_idx] = FAT_FREE_BLOCK;
-        curr_block = next_block;
+        if(next_block != FAT_BLOCK_END && next_block != FAT_FREE_BLOCK && next_block != FAT_BAD){
+            curr_block = DATA_START_BLOCK + next_block;
+        }
+        else curr_block = next_block;
     }
     return 1;
 }
