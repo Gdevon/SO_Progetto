@@ -11,8 +11,12 @@ uint16_t FAT_find_free_block(FileSystem* fs){
     }return FAT_BLOCK_END;
 }
 uint16_t FAT_find_next_block(FileSystem* fs, uint16_t block_id){
-    if(!fs || !fs->mounted){
-        print_error(INVALID_BLOCK);
+    if(!fs){
+        print_error(FS_NOTINIT);
+        return FAT_BAD;
+    }
+    if(!fs->mounted){
+        print_error(DISK_UNMOUNTED);
         return FAT_BAD;
     }
     if(block_id < DATA_START_BLOCK){
@@ -25,8 +29,8 @@ uint16_t FAT_find_next_block(FileSystem* fs, uint16_t block_id){
         return FAT_BAD;
     }
     uint16_t next_idx = fs->fat[fat_idx];
-    if(next_idx == FAT_BLOCK_END){
-        return FAT_BLOCK_END;
+    if(next_idx == FAT_BLOCK_END || next_idx == FAT_FREE_BLOCK || next_idx == FAT_BAD){
+        return next_idx;
     }
     return DATA_START_BLOCK + next_idx;
 }

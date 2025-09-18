@@ -512,14 +512,14 @@ int shell_rm(char **args) {
                         printf("Errore in delete_force per %s\n", handle_name);
                         return -1;
                     }
-                    printf(BLU"Directory %s eliminata\n", handle_name);
+                    printf(BLU"Operazione %s eseguita\n", handle_name);
                 } else {
                     printf(BLU"Eliminazione di %s annullata\n", handle_name);
                     continue;
                 }
             } else {
                 if (DirHandle_delete(fs, handle_name) < 0) {
-                    printf(RED"Errore nell'eliminazione della directory %s\n", handle_name);
+                    printf(RED"Errore nell'eliminazione della directory, se contiene elementi : RM -RF <dir> %s\n", handle_name);
                     return -1;
                 }
                 printf(BLU"Directory %s eliminata\n", handle_name);

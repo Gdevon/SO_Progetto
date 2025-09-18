@@ -20,7 +20,7 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
         print_error(DISK_UNMOUNTED);
         return NULL;
     }
-    if (strlen(filename) > 46) {
+    if (strlen(filename) > 43) {
         print_error(LONG_NAME);
         return NULL;
     }
@@ -143,7 +143,7 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
     size_t written_bytes = 0;
     if(curr_block == FAT_FREE_BLOCK || curr_block == FAT_BLOCK_END || curr_block == FAT_FREE_BLOCK){
         curr_block = FAT_find_free_block(fs);
-        if(curr_block == (uint16_t) -1){
+        if(curr_block == FAT_BLOCK_END){
             print_error(FULL_FAT);
             return -1;
         }
@@ -156,18 +156,12 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
     size_t block_offset = curr_offset % BLOCK_SIZE;
 
     for (size_t i = 0; i < block_idx ; ++i) {
-        if(curr_block == FAT_BLOCK_END){
+        curr_block = FAT_find_next_block(fs,curr_block);
+        if(curr_block == FAT_BLOCK_END || curr_block == FAT_BAD){
             print_error(INVALID_BLOCK);
             return -1;
         }
-        uint16_t next_block = fs->fat[curr_block-DATA_START_BLOCK];
-        if(next_block == FAT_BAD){
-            print_error(INVALID_BLOCK);
-            return -1;
-        }
-        curr_block = next_block;
     }
-
     while (written_bytes < size_to_write) {
         size_t bytes_to_write = BLOCK_SIZE - block_offset;
         if (bytes_to_write > size_to_write - written_bytes) {
@@ -185,21 +179,19 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
             print_error(INVALID_BLOCK);
             return written_bytes;
         }
-
         written_bytes += bytes_to_write;
         curr_offset += bytes_to_write;
         fh->byte_offset = curr_offset;
         block_offset = 0;
-
         if (written_bytes < size_to_write) {
-            uint16_t next_block = fs->fat[curr_block-DATA_START_BLOCK];
+            uint16_t next_block = FAT_find_next_block(fs,curr_block);
             if (next_block == FAT_BLOCK_END) {
                 next_block = FAT_find_free_block(fs);
-                if(next_block == FAT_BAD){
+                if(next_block == FAT_BLOCK_END){
                     print_error(FULL_FAT);
                     return written_bytes;
                 }
-                fs->fat[curr_block - DATA_START_BLOCK] = next_block;
+                fs->fat[curr_block - DATA_START_BLOCK] = next_block - DATA_START_BLOCK;
                 fs->fat[next_block-DATA_START_BLOCK] = FAT_BLOCK_END;
             }else if(next_block == FAT_BAD){
                 print_error(INVALID_BLOCK);
@@ -257,16 +249,11 @@ int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_
     uint16_t block_idx = curr_offset / BLOCK_SIZE;
     size_t block_offset = curr_offset % BLOCK_SIZE;
     for(size_t i = 0;i < block_idx; ++i){
-        if(curr_block == FAT_BLOCK_END){
+        curr_block = FAT_find_next_block(fs,curr_block);
+        if(curr_block == FAT_BLOCK_END || curr_block == FAT_BAD){
             print_error(INVALID_BLOCK);
             return -1;
         }
-        uint16_t next_block = fs->fat[curr_block-DATA_START_BLOCK];
-        if(next_block == FAT_BAD){
-            print_error(INVALID_BLOCK);
-            return -1;
-        }
-        curr_block = next_block;
     }
     while(read_bytes < size_to_read){
         size_t bytes_to_read_in_block = BLOCK_SIZE - block_offset;
@@ -284,19 +271,12 @@ int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_
         fh->byte_offset = curr_offset;
         block_offset = 0;
         if(read_bytes < size_to_read){
-            //if(curr_block < DATA_START_BLOCK || curr_block >= DATA_START_BLOCK + DATA_BLOCKS){
-            //    print_error(INVALID_BLOCK);
-            //    return read_bytes;
-            //}
-            uint16_t next_block = fs->fat[curr_block-DATA_START_BLOCK];
-            if(next_block == FAT_BLOCK_END){
-                return read_bytes;
-            }
-            if(next_block == FAT_BAD){
+            curr_block = FAT_find_next_block(fs,curr_block);
+            if(curr_block == FAT_BLOCK_END) return read_bytes;
+            if(curr_block == FAT_BAD){
                 print_error(INVALID_BLOCK);
                 return read_bytes;
             }
-            curr_block = next_block;
         }
     }
     update_access_date(fh->dir);

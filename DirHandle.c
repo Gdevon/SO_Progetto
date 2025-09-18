@@ -226,35 +226,24 @@ int DirHandle_delete_recursive(FileSystem* fs, uint16_t dir_block) {
                 }
             } else {
                 ListItem* file_curr = fs->handles.first;
-                int file_is_open = 0;
                 while(file_curr){
                     Handle_Item* file_item = (Handle_Item*) file_curr;
                     if(file_item->type == FILE_HANDLE){
                         FileHandle* fh = (FileHandle*) file_item->handle;
                         if(fh->dir == &dir_entries[i] && fh->open){
-                            file_is_open = 1;
+                            FileHandle_close(fs,fh);
                             break;
                         }
                     }
                     file_curr = file_curr->next;
                 }
-                if(file_is_open){
-                    print_error(FILE_ALR_OPEN);
-                    return -1;
-                }
                 if(FAT_free_chain(fs, dir_entries[i].first_block) < 0){
                     return -1;
                 }
             }
+            memset(&dir_entries[i],0,sizeof(Dir_Entry));
         }
-    }
-    for (int i = 0; i < ENTRIES_PER_BLOCK; ++i) {
-        if (dir_entries[i].filename[0] != '\0' &&
-            strcmp(dir_entries[i].filename, ".") != 0 &&
-            strcmp(dir_entries[i].filename, "..") != 0) {
-            memset(&dir_entries[i], 0, sizeof(Dir_Entry));
-        }
-    }    
+    }  
     if (FAT_free_chain(fs, dir_block) < 0) {
         return -1;
     }
@@ -290,5 +279,6 @@ int DirHandle_delete_force(FileSystem* fs, char* dirname) {
         return -1;
     }    
     memset(target, 0, sizeof(Dir_Entry));
+    target->first_block = FAT_FREE_BLOCK;
     return 1;
 }

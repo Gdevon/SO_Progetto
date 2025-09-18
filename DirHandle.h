@@ -3,8 +3,8 @@
 #include "DIR_Entry.h"
 typedef struct {
     Dir_Entry* entries;    
-    uint32_t num_entries;        
-    uint32_t position;     
+    uint32_t num_entries;       //in realtà alla fine è sempre 8 
+    uint32_t position;          //mai usata ormai la tengo
     uint16_t first_block;  
     uint8_t open;          
 } DirHandle;

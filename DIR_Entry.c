@@ -145,7 +145,7 @@ Dir_Entry* Dir_Entry_find_free(FileSystem* fs,uint16_t start_block){
     }
     int max_entries;
     Dir_Entry* entries;
-    if(start_block == ROOT_DIR_START_BLOCK|| start_block < DATA_START_BLOCK){
+    if(start_block == ROOT_DIR_START_BLOCK|| start_block < DATA_START_BLOCK){ /*>= && < forse meglio*/
         entries = fs->root_dir;
         max_entries = ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;
     }
@@ -205,12 +205,8 @@ int Dir_Entry_change(FileSystem* fs, char* name){
             return 1;
         }
         Dir_Entry* entries;
-        if (fs->curr_dir == ROOT_DIR_START_BLOCK) {
-            entries = fs->root_dir;
-        } else {
-            uint32_t block_offset = (fs->curr_dir - DATA_START_BLOCK) * BLOCK_SIZE;
-            entries = (Dir_Entry*)(fs->data + block_offset);
-        }        
+        uint32_t block_offset = (fs->curr_dir - DATA_START_BLOCK) * BLOCK_SIZE;
+        entries = (Dir_Entry*)(fs->data + block_offset);
         if (strcmp(entries[1].filename, "..") == 0) {
             fs->curr_dir = entries[1].first_block;
             //printf("Cambiato alla directory padre (blocco %u)\n", fs->curr_dir);
