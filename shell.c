@@ -11,7 +11,7 @@
 #include "Colors.h"
 int pres = 0;
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
-"MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE","CHMOD","PWD"};
+"MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE","CHMOD","CODE","CLEAR"};
 int (*cmd_pointer[])(char**) = {
     &shell_format,
     &shell_mount,
@@ -26,6 +26,8 @@ int (*cmd_pointer[])(char**) = {
     &shell_help,
     &shell_close,
     &shell_chmod,
+    &shell_code,
+    &shell_clear,
     //&shell_pwd
 };
 void shell_loop(){
@@ -302,7 +304,7 @@ int shell_touch(char **args) {
     }
     int start = 1;
     int perms = 0;
-    if( strcmp(args[1],"-P") == 0){
+    if( strcmp(args[1],"-P") == 0 || strcmp(args[1],"-p") == 0){
         perms = 1;
         if(args[2] == NULL){
             printf(RED"Specificare almeno un file\n"RESET);
@@ -542,7 +544,7 @@ int shell_help(char **args) {
         printf("Per iniziare: FORMAT <nomedisco.fs> -> MOUNT <nomedisco.fs>, oppure solo MOUNT <nomedisco.fs>, se già è stato creato in precedenza. Da qui possono essere eseguiti i comandi disponibili digitando HELP. Per chiudere -> UNMOUNT -> CLOSE\n");
         *a = 1;
     }
-    printf(BLU"Comandi disponibili:\n\\n"RESET);
+    printf(BLU"Comandi disponibili:\n\n"RESET);
     printf(
     "FORMAT <disco>\n"
     "MOUNT <disco>\n"
@@ -554,12 +556,15 @@ int shell_help(char **args) {
     "APPEND <file> <testo>\n"
     "RM [-RF] <files/cartelle>\n"
     "CHMOD <permessi>\n"
+    "CODE <file> per aprire un file esistente in vscode\n"
     "\n"
     "MKDIR <dir>\n"
     "CD <dest>\n"
     "LS / LS <dir/file>\n"
+    "CLEAR\n"
     "\n"
     "HELP\n"
+
 );
 return 1;
 }
@@ -661,3 +666,88 @@ int args_count(char** args){
     printf("La working directory è %s\n",pwd);
     return 1;
 }*/
+int shell_code(char **args){
+    if(args_count(args) != 2){
+        printf(RED "Uso corretto: CODE <file>\n" RESET);
+        return -1;
+    }
+    char* filename = args[1];
+    Dir_Entry* entry = Dir_Entry_find_name(fs, filename, fs->curr_dir);
+    if(!entry){
+        print_error(FILE_NOT_FOUND);
+        return -1;
+    }
+    if(entry->is_dir == 0) {
+        print_error(NOT_A_FILE);
+        return -1;
+    }
+    FileHandle* fh = FileHandle_open(fs, filename, PERM_READ);
+    if(!fh)return -1;
+    char* buffer = malloc(fh->dir->file_size + 1);
+    if(!buffer){
+        FileHandle_close(fs, fh);
+        return -1;
+    }
+    int read_bytes = FileHandle_read(fs, fh, buffer, fh->dir->file_size);
+    buffer[read_bytes] = '\0';
+    FileHandle_close(fs, fh);
+    char tmp_path[128];
+    char* tmp_dir = "./tmp_code";
+    struct stat st = {0};
+    if(stat(tmp_dir,&st) == -1){
+        if(mkdir(tmp_dir,0777) != 0){
+            printf(RED"Problemi nella creazione della cartella temporanea per CODE\n"RESET);
+            free(buffer);
+            return -1;
+        }
+    }
+    snprintf(tmp_path, sizeof(tmp_path), "%s/%s.tmp",tmp_dir, filename);
+    FILE* tmp = fopen(tmp_path, "w");
+    if(!tmp){
+        free(buffer);
+        return -1;
+    }
+    fwrite(buffer, 1, read_bytes, tmp);
+    fclose(tmp);
+    free(buffer);
+    char command[256];
+    snprintf(command, sizeof(command), "code -w %s", tmp_path);
+    if(system(command) != 0){
+        printf(RED"Errore nell'apertura di vscode, è presente nel sistema?\n"RESET);
+        unlink(tmp_path);
+        return -1;
+    }
+    tmp = fopen(tmp_path, "r");
+    if(!tmp) return -1;
+    fseek(tmp, 0, SEEK_END);
+    long size = ftell(tmp);
+    fseek(tmp,0,SEEK_SET);
+    char* buf = (char*)malloc(size);
+    if(!buf){
+        fclose(tmp);
+        unlink(tmp_path);
+        return -1;
+    }
+    fread(buf, 1, size, tmp);
+    fclose(tmp);
+    if(unlink(tmp_path)!=0){
+        printf(RED"Impossibile eliminare il file temporaneo\n"RESET);
+    }
+    fh = FileHandle_open(fs, filename, PERM_WRITE);
+    if(!fh){
+        free(buf);
+        return -1;
+    }
+    fh->dir->file_size = 0;
+    fh->byte_offset = 0;
+    FileHandle_write(fs, fh, buf, size);
+    FileHandle_close(fs, fh);
+    free(buf);
+    printf(GRN "%s modificato correttamente\n" RESET, filename);
+    return 1;
+}
+int shell_clear(char** args){
+    printf("\033[H\033[J");
+    fflush(stdout);
+    return 1;
+}

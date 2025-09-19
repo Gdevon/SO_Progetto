@@ -3,3 +3,5 @@
 *.fs
 test*
 run 
+tmp_code/
+*.tmp
