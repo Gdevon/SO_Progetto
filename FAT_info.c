@@ -3,15 +3,15 @@
 #include "FAT_info.h"
 #include "FS_info.h"
 
-uint16_t FAT_find_free_block(FileSystem* fs){
+uint16_t FAT_find_free_block(FileSystem* fs){ //se c'è un blocco della fat libero, ritorna il relativo blocco nella sezione dati: 5 |FAT FREE| --->  DATA_START (256+32+1) +5 |     |
     for(uint16_t i = 0;i<DATA_BLOCKS;++i){
         if(fs->fat[i] == FAT_FREE_BLOCK){
             return DATA_START_BLOCK + i;
         }
     }return FAT_BLOCK_END;
 }
-uint16_t FAT_find_next_block(FileSystem* fs, uint16_t block_id){
-    if(!fs){
+uint16_t FAT_find_next_block(FileSystem* fs, uint16_t block_id){ //a partire da un blocco, trova il prossimo tramite la FAT: block id = 500 -> calcola blocco in fat: 500-DATA_start = 500-289 = 211
+    if(!fs){                                                     //                                                           fat 211 | next |  -> se è valido, riconverti in sezione dati sommando DATA_START BLOCK, altrimenti ritorna next (vuoto/fine/"rotto")                                                                               
         print_error(FS_NOTINIT);
         return FAT_BAD;
     }

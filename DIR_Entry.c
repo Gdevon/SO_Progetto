@@ -9,31 +9,27 @@
 #include "FAT_info.h"
 #include "Colors.h"
 
-void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uint16_t start, int type) {
-    if (!fs || !free_entry || !filename) {
+void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uint16_t start, int type) { 
+    if(!fs || !free_entry || !filename){                                                                 
         return;
     }
-    
     if (type == 0 && start < DATA_START_BLOCK) {
+        print_error(ROOT_AREA);
         return;
     }
-    
     if (type == 0 && !fs->data) {
         print_error(DATA_NOTINIT);
         return;
     }
-    
     if (type == 0) {
         uint32_t block_offset = (start - DATA_START_BLOCK) * BLOCK_SIZE;
         uint32_t max_offset = DATA_BLOCKS * BLOCK_SIZE;
-
         if (block_offset >= max_offset) {
             print_error(INVALID_BLOCK);
             return;
         }
         //printf("Blocco %u valido, offset %u\n", start, block_offset);
     }
-    
     memset(free_entry, 0, sizeof(Dir_Entry));
     memset(free_entry->filename,0,43);
     strncpy(free_entry->filename, filename,43);
@@ -58,7 +54,7 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
         memset(&dir_entries[0],0,sizeof(Dir_Entry));  
         memset(dir_entries[0].filename,0,43);  
         strcpy(dir_entries[0].filename, ".");
-        dir_entries[0].is_dir = 0;  
+        dir_entries[0].is_dir = ENTRY_TYPE_DIR;  
         dir_entries[0].first_block = start;
         dir_entries[0].file_size = 0;
         dir_entries[0].creation_time = time_to_uint16(now);
@@ -69,7 +65,7 @@ void Dir_Entry_create(FileSystem* fs, Dir_Entry* free_entry, char* filename, uin
         memset(&dir_entries[1], 0, sizeof(Dir_Entry));
         memset(dir_entries[1].filename, 0, 43);
         strcpy(dir_entries[1].filename, "..");
-        dir_entries[1].is_dir = 0;  
+        dir_entries[1].is_dir = ENTRY_TYPE_DIR;  
         dir_entries[1].first_block = fs->curr_dir;  
         dir_entries[1].file_size = 0;
         dir_entries[1].creation_time = time_to_uint16(now);
@@ -91,7 +87,7 @@ void Dir_Entry_list(FileSystem* fs, uint16_t dir_block){
     int max_entries;
     if(dir_block == ROOT_DIR_START_BLOCK){
         dir_entries = fs->root_dir;
-        max_entries = ROOT_DIR_BLOCKS * ENTRIES_PER_BLOCK; //512 
+        max_entries = ROOT_DIR_BLOCKS * ENTRIES_PER_BLOCK;  
         for(int i=0; i < max_entries;++i){
             Dir_Entry* entry = &dir_entries[i];
             Dir_Entry_list_aux(entry);
@@ -138,14 +134,14 @@ void Dir_Entry_list_aux(Dir_Entry* e){
 void Dir_Entry_curr_list(FileSystem* fs){
     Dir_Entry_list(fs,fs->curr_dir);
 }
-Dir_Entry* Dir_Entry_find_free(FileSystem* fs,uint16_t start_block){
+Dir_Entry* Dir_Entry_find_free(FileSystem* fs,uint16_t start_block){ 
     if(!fs){
         print_error(FS_NOTINIT);
         return NULL;
     }
     int max_entries;
     Dir_Entry* entries;
-    if(start_block == ROOT_DIR_START_BLOCK|| start_block < DATA_START_BLOCK){ /*>= && < forse meglio*/
+    if(start_block == ROOT_DIR_START_BLOCK|| start_block < DATA_START_BLOCK){ 
         entries = fs->root_dir;
         max_entries = ROOT_DIR_BLOCKS*ENTRIES_PER_BLOCK;
     }
@@ -194,12 +190,12 @@ int Dir_Entry_change(FileSystem* fs, char* name){
     if(!fs){print_error(FS_NOTINIT);return -1;}
     if(!fs->mounted){print_error(DISK_UNMOUNTED);return -1;}
     if(name[0] == '\0'){print_error(EMPTY_NAME);return -1;}
-    if (strcmp(name, "/") == 0) {
+    if (strcmp(name, "/") == 0){
         fs->curr_dir = ROOT_DIR_START_BLOCK;
         printf("Cambiato in root directory\n");
         return 1;
     }    
-    if (strcmp(name, "..") == 0) {
+    if (strcmp(name, "..") == 0){
         if (fs->curr_dir == ROOT_DIR_START_BLOCK) {
             printf("Già in root directory\n");
             return 1;
@@ -221,7 +217,7 @@ int Dir_Entry_change(FileSystem* fs, char* name){
         print_error(DIR_NOT_FOUND);
         return -1;
     }
-    if (target->is_dir == 1) { // 0 = directory
+    if (target->is_dir == ENTRY_TYPE_FILE) { // 0 = directory
         print_error(NOT_A_DIR);
         return -1;
     }
@@ -232,17 +228,17 @@ int Dir_Entry_change(FileSystem* fs, char* name){
 
 uint16_t time_to_uint16(time_t timestamp) {
     struct tm *tm_info = localtime(&timestamp);
-    return (uint16_t)(tm_info->tm_hour * 3600 + tm_info->tm_min * 60 + tm_info->tm_sec);
+    return (uint16_t)(tm_info->tm_hour * 60 + tm_info->tm_min); 
 }
 uint16_t date_to_uint16(time_t timestamp) {
     return (uint16_t)(timestamp / 86400);
 }
-void get_time(uint16_t t, int out[3]) {
-    out[0] = t / 3600;
-    out[1] = (t % 3600) / 60;
-    out[2] = t % 60;
+void get_time(uint16_t t, int out[]) {
+    out[0] = t / 60;
+    out[1] = t % 60;
+    out[2] = 0;
 }
-void get_date(uint16_t date, int out[3]) {
+void get_date(uint16_t date, int out[]) {
     time_t tt = (time_t)date * 86400;
     struct tm *tm_info = localtime(&tt);
     out[0] = tm_info->tm_mday;

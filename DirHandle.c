@@ -7,7 +7,7 @@
 #include "ListHandle.h"
 #include "Colors.h"
 
-DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
+DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){ 
     if(!fs){
         print_error(FS_NOTINIT);
         return NULL;
@@ -27,7 +27,7 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
     uint16_t parent_block = fs->curr_dir;
     Dir_Entry* target = Dir_Entry_find_name(fs,dirname,parent_block);
     if(target){
-        if(target->is_dir == 1){
+        if(target->is_dir == ENTRY_TYPE_FILE){
             print_error(NOT_A_DIR);
             return NULL;
         }
@@ -78,7 +78,7 @@ DirHandle* DirHandle_open(FileSystem* fs,char* dirname,Permission perm){
     return dh;
 }
 
-int DirHandle_close(FileSystem* fs, DirHandle* dh){
+int DirHandle_close(FileSystem* fs, DirHandle* dh){ 
     if(!fs || !dh){
         print_error(DH_FREE_FAIL);
         return -1;
@@ -129,7 +129,7 @@ void DirHandle_list(FileSystem* fs, DirHandle* dh){
     }    
     Dir_Entry_list(fs, dh->first_block);
 }
-int DirHandle_delete(FileSystem* fs, char* dirname){
+int DirHandle_delete(FileSystem* fs, char* dirname){ 
     if(!fs){
         print_error(FS_NOTINIT);
         return -1;
@@ -151,7 +151,7 @@ int DirHandle_delete(FileSystem* fs, char* dirname){
         print_error(DIR_NOT_FOUND);
         return -1;
     }
-    if(target->is_dir == 1){
+    if(target->is_dir == ENTRY_TYPE_FILE){
         print_error(NOT_A_DIR);
         return -1;
     }
@@ -189,7 +189,7 @@ int DirHandle_delete(FileSystem* fs, char* dirname){
     //printf("Eliminazione %s effettuata\n",dirname);
     return 1;
 }
-int DirHandle_delete_recursive(FileSystem* fs, uint16_t dir_block) {
+int DirHandle_delete_recursive(FileSystem* fs, uint16_t dir_block) { 
     if (!fs || !fs->mounted) {
         print_error(FS_NOTINIT);
         return -1;
@@ -220,7 +220,7 @@ int DirHandle_delete_recursive(FileSystem* fs, uint16_t dir_block) {
         if (dir_entries[i].filename[0] != '\0' &&
             strcmp(dir_entries[i].filename, ".") != 0 &&
             strcmp(dir_entries[i].filename, "..") != 0) {
-            if (dir_entries[i].is_dir == 0) {
+            if (dir_entries[i].is_dir == ENTRY_TYPE_DIR) {
                 if (DirHandle_delete_recursive(fs, dir_entries[i].first_block) < 0) {
                     return -1;
                 }
@@ -271,7 +271,7 @@ int DirHandle_delete_force(FileSystem* fs, char* dirname) {
         print_error(DIR_NOT_FOUND);
         return -1;
     }
-    if (target->is_dir == 1) {
+    if (target->is_dir == ENTRY_TYPE_FILE) {
         print_error(NOT_A_DIR);
         return -1;
     }    

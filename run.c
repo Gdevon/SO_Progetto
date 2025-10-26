@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "FS_info.h"
 #include "shell.h"
-#include "Extern_fs.h"
+#include "Extern.h"
 #include "Colors.h"
 FileSystem* fs;
 char* pwd;

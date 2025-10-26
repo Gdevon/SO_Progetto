@@ -18,8 +18,6 @@ void Handle_Item_destroy(ListItem* item){
         DirHandle* dh = (DirHandle*) h->handle;
         dh->open = 0;
         if(dh->entries){
-            free(dh->entries);
-            dh->entries = NULL;
         }
     }
     free(h);

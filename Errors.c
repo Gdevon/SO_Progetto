@@ -1,8 +1,11 @@
 #include "Errors.h"
+#include "Colors.h"
 void print_error(int err){
+    printf(RED);
     switch (err) {
         case FULL_DIR:
             printf("Directory piena, impossibile trovare una entry libera\n");
+            break;
         case TRUNC_ERR:
             printf("Errore: ftruncate non ha avuto successo\n");
             break;
@@ -112,4 +115,5 @@ void print_error(int err){
             printf("Errore sconosciuto: %d\n", err);
             break;
     }
+    printf(RESET);
 }

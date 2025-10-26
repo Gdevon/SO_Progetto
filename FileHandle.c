@@ -11,7 +11,7 @@
 #define SEEK_CUR 1
 #define SEEK_END 2
 
-FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
+FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){ 
     if (!fs) {
         print_error(FS_NOTINIT);
         return NULL;
@@ -26,7 +26,7 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
     }
     Dir_Entry* target = Dir_Entry_find_name(fs, filename,fs->curr_dir);
     if (target) {
-        if (target->is_dir == 0) {
+        if (target->is_dir == ENTRY_TYPE_DIR) {
             print_error(NOT_A_FILE);
             return NULL;
         }
@@ -88,7 +88,7 @@ FileHandle* FileHandle_open(FileSystem* fs, char* filename,Permission perm){
     //printf("File %s aperto con successo\n", fh->dir->filename);
     return fh;
 }
-int FileHandle_close(FileSystem* fs, FileHandle *fh){
+int FileHandle_close(FileSystem* fs, FileHandle *fh){ 
     if(!fs || !fh){
         print_error(FH_FREE_FAIL);
         return -1 ;
@@ -112,10 +112,10 @@ int FileHandle_close(FileSystem* fs, FileHandle *fh){
     return 1;
 }
 
-int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_to_write) {
-    if (!fs) {
-        print_error(FS_NOTINIT);
-        return -1;
+int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_to_write) { 
+if (!fs) {                                                                                 
+print_error(FS_NOTINIT);                                                                   
+return -1;                                                                                 
     }
     if (!fs->mounted) {
         print_error(DISK_UNMOUNTED);
@@ -207,9 +207,9 @@ int FileHandle_write(FileSystem* fs, FileHandle* fh, char* buffer, size_t size_t
     //printf("FileHandle_write completata\n");
     return written_bytes;
 }
-int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_read){
-    if (!fs) {
-        print_error(FS_NOTINIT);
+int FileHandle_read(FileSystem* fs, FileHandle* fh, char* buffer,size_t size_to_read){ 
+    if (!fs) {                                                                           
+        print_error(FS_NOTINIT);                                                       
         return -1;
     }
     if (!fs->mounted) {
@@ -349,7 +349,7 @@ int FileHandle_delete(FileSystem* fs, char* filename){
         print_error(FILE_NOT_FOUND);
         return -1;
     }
-    if(entry->is_dir == 0){
+    if(entry->is_dir == ENTRY_TYPE_DIR){
         print_error(NOT_A_FILE);
         return -1;
     }
@@ -403,4 +403,45 @@ void FileHandle_print_perm(FileHandle* fh) {
     if (fh->permission & PERM_CREAT) printf("PERM_CREAT ");
     if (fh->permission & PERM_EXCL)  printf("PERM_EXCL ");
     printf("\n");
+}
+int FileHandle_mv(FileSystem* fs, FileHandle* src, char* dst){
+    if(!fs){
+        print_error(FS_NOTINIT);
+        return -1;
+    }
+    if(!fs->mounted){
+        print_error(DISK_UNMOUNTED);
+        return -1;
+    }
+    if(!src || !dst){
+        printf(RED "File o Cartella non esistenti\n" RESET);
+        return -1;
+    }
+    char* filename = src->dir->filename;
+    Dir_Entry* src_de = Dir_Entry_find_name(fs,filename,fs->curr_dir);
+    if(src->open){
+        FileHandle_close(fs,src);
+    }
+    Dir_Entry* dst_de = Dir_Entry_find_name(fs,dst,fs->curr_dir);
+    if(!dst_de){
+        print_error(DIR_NOT_FOUND);
+        return -1;
+    }
+    if(dst_de->is_dir == ENTRY_TYPE_FILE){
+        print_error(NOT_A_DIR);
+        return -1;
+    }
+    Dir_Entry* existing = Dir_Entry_find_name(fs, filename, dst_de->first_block);
+    if(existing){
+        printf(RED "%s già contiene un file con questo nome\n"RESET,dst_de->filename);
+        return -1;
+    }
+    Dir_Entry* free_entry = Dir_Entry_find_free(fs, dst_de->first_block);
+    if (!free_entry) {
+        print_error(FULL_DIR);
+        return -1;
+    }
+    memcpy(free_entry, src_de, sizeof(Dir_Entry));    
+    memset(src_de, 0, sizeof(Dir_Entry));
+    return 1;
 }

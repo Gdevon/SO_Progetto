@@ -4,7 +4,9 @@
 typedef struct FileSystem FileSystem;
 
 #define DIR_ENTRY_SIZE 64
-#define ENTRIES_PER_BLOCK 8 //(512 / DIR_ENTRY_SIZE) //512 sarebbe block size
+#define ENTRIES_PER_BLOCK 8 
+#define ENTRY_TYPE_DIR 0
+#define ENTRY_TYPE_FILE 1
 typedef struct {
     char filename[43];
     uint16_t first_block;    
@@ -28,9 +30,9 @@ int Dir_Entry_fill(Dir_Entry*);
 void Dir_Entry_free();
 void Dir_Entry_print(Dir_Entry*);
 uint16_t time_to_uint16(time_t);
-void get_time(uint16_t,int* );
+void get_time(uint16_t,int[]);
 uint16_t date_to_uint16(time_t );
-void get_date(uint16_t ,int*);
+void get_date(uint16_t ,int[]);
 int check_duplicates(FileSystem* ,char*);
 Dir_Entry* Dir_Entry_find_free(FileSystem*,uint16_t);
 Dir_Entry* Dir_Entry_find_name(FileSystem*,char*,uint16_t);

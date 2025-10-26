@@ -12,12 +12,12 @@
 #include "FAT_info.h"
 #include "DIR_Entry.h"
 #include "Colors.h"
-int disk_creat(char* disk_name, uint32_t size){
+int disk_creat(char* disk_name, uint32_t size){ 
     if(size != DISK_SIZE){
-        //printf("size [%u] non corrispondente a DISK_SIZE: [%u]\n",size,DISK_SIZE);
+        print_error(DISK_SIZE); 
         return -1;
     }
-    int fd = open(disk_name,O_RDWR|O_CREAT|O_EXCL|O_TRUNC,0666);
+    int fd = open(disk_name,O_RDWR|O_CREAT|O_EXCL|O_TRUNC,0666); 
     if(fd < 0){
         print_error(DISK_CREAT_OPEN_FAIL);
         return DISK_CREAT_OPEN_FAIL;
@@ -30,7 +30,7 @@ int disk_creat(char* disk_name, uint32_t size){
         }
         return TRUNC_ERR;
     }
-    uint8_t* disk = (uint8_t*)mmap(NULL,DISK_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);
+    uint8_t* disk = (uint8_t*)mmap(NULL,DISK_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0); 
     if(disk == MAP_FAILED){
         print_error(DISK_CREAT_MMAP_FAIL);
         if(close(fd) < 0 ){
@@ -40,11 +40,11 @@ int disk_creat(char* disk_name, uint32_t size){
         return DISK_CREAT_MMAP_FAIL;
     }
     memset(disk,0,DISK_SIZE);
-    uint16_t* fat = (uint16_t*)(disk + (BLOCK_SIZE*BOOT_SECTOR_BLOCKS));
+    uint16_t* fat = (uint16_t*)(disk + (BLOCK_SIZE*BOOT_SECTOR_BLOCKS)); 
     for(int i = 0; i < FAT_ENTRIES; ++i){
         fat[i] = FAT_FREE_BLOCK;
     }
-    Dir_Entry* root_dir = (Dir_Entry*)(disk+ (BLOCK_SIZE)*(BOOT_SECTOR_BLOCKS+FAT_BLOCKS));
+    Dir_Entry* root_dir = (Dir_Entry*)(disk+ (BLOCK_SIZE)*(BOOT_SECTOR_BLOCKS+FAT_BLOCKS)); 
     memset(root_dir,0,BLOCK_SIZE*ROOT_DIR_BLOCKS);
     uint8_t* data = (uint8_t*)(disk+(BLOCK_SIZE*DATA_START_BLOCK));
     memset(data,0,BLOCK_SIZE*DATA_BLOCKS);
@@ -59,7 +59,7 @@ int disk_creat(char* disk_name, uint32_t size){
     //printf("Disk_creat ha avuto successo\n");
     return 1;
 }
-int disk_mount(FileSystem* fs, char* disk_n){
+int disk_mount(FileSystem* fs, char* disk_n){ 
     if(fs->mounted == 1){
         print_error(DISK_MOUNTED);
         return DISK_MOUNTED;
@@ -89,7 +89,7 @@ int disk_mount(FileSystem* fs, char* disk_n){
     printf(BLU "Disco montato correttamente\n" RESET);
     return 1;
 }
-int disk_unmount(FileSystem* fs){
+int disk_unmount(FileSystem* fs){ 
     if(fs->mounted == 0){
         print_error(DISK_UNMOUNTED);
         return DISK_UNMOUNTED;
@@ -145,7 +145,7 @@ void fs_free(FileSystem** fs){
        // printf("free fs\n");
     }
 }
-int fs_write_block(FileSystem* fs, uint16_t block_id, void* buffer){
+int fs_write_block(FileSystem* fs, uint16_t block_id, void* buffer){ 
     if(!fs){
         print_error(FS_NOTINIT);
         return -1;

@@ -5,13 +5,13 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "Extern_fs.h"
+#include "Extern.h"
 #include "DirHandle.h"
 #include "FileHandle.h"
 #include "Colors.h"
 int pres = 0;
 char* commands[] = {"FORMAT","MOUNT","UNMOUNT",
-"MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE","CHMOD","CODE","CLEAR"};
+"MKDIR","CD","TOUCH","CAT","LS","APPEND","RM","HELP","CLOSE","CHMOD","CODE","CLEAR", "MV"};
 int (*cmd_pointer[])(char**) = {
     &shell_format,
     &shell_mount,
@@ -28,7 +28,7 @@ int (*cmd_pointer[])(char**) = {
     &shell_chmod,
     &shell_code,
     &shell_clear,
-    //&shell_pwd
+    &shell_mv,
 };
 void shell_loop(){
     char *line;
@@ -125,7 +125,7 @@ int shell_format(char **args) {
     char *fs_name = args[1];
     int fd = open(fs_name, O_RDONLY);
     if (fd >= 0) {
-    printf(GRN"Disco '%s' esistente, formatto...\n",fs_name);
+    printf(GRN"Disco '%s' esistente, formatto...\n"RESET,fs_name);
     close(fd);
     if (fs && fs->mounted) {
         if (disk_unmount(fs) < 0) {
@@ -226,7 +226,7 @@ int shell_mkdir(char **args) {
         }
         dh = DirHandle_open(fs,dirname,PERM_CREAT|PERM_EXCL);
         if(!dh){
-            printf(RED"Errore nella creazione di %s\n", dirname );
+            printf(RED"Errore nella creazione di %s\n"RESET, dirname );
             return -1;
         }
         if(DirHandle_close(fs,dh)<0){
@@ -322,7 +322,7 @@ int shell_touch(char **args) {
         fh = FileHandle_open(fs,args[i],PERM_CREAT|PERM_EXCL);
         if(perms)FileHandle_change_perm(fh,PERM_WRITE|PERM_READ);
         if(!fh){
-            printf(RED"Errore nella creazione di %s, il file già esiste\n", args[i] );
+            printf(RED"Errore nella creazione di %s, il file già esiste\n"RESET, args[i] );
             return -1;
         }
         if(FileHandle_close(fs,fh)<0){
@@ -353,7 +353,7 @@ int shell_cat(char **args) {
         printf(RED"Nessun file trovato\n"RESET);
         return -1;
     }else{
-        if(target->is_dir == 0){
+        if(target->is_dir == ENTRY_TYPE_DIR){
             printf(RED"Selezionare un file, non una directory\n"RESET);
             return -1;
         }else{
@@ -396,7 +396,7 @@ int shell_ls(char **args) {
         if(!target){
             printf(RED"Impossibile trovare un elemento con questo nome\n"RESET);
         }
-        else if(target->is_dir == 1){
+        else if(target->is_dir == ENTRY_TYPE_FILE){
             Dir_Entry_list_aux(target);
         }else{
             Dir_Entry_list(fs,target->first_block);
@@ -421,7 +421,7 @@ int shell_append(char **args) {
         printf(RED"Non ho trovato nessun file con questo nome\n"RESET);
         return -1;
     }
-    if(target->is_dir ==0){
+    if(target->is_dir == ENTRY_TYPE_DIR){
         printf(RED"Non è possibile usare APPEND su una cartella\n"RESET);
         return -1;
     }
@@ -500,10 +500,10 @@ int shell_rm(char **args) {
         handle_name = args[start + i];  
         de = Dir_Entry_find_name(fs, handle_name, fs->curr_dir);
         if (!de) {
-            printf(RED"Non esiste %s\n", handle_name);
+            printf(RED"Non esiste %s\n"RESET, handle_name);
             continue;
         }
-        if (de->is_dir == 0) { 
+        if (de->is_dir == ENTRY_TYPE_DIR) { 
             if (rf) {
                 printf(RED"Attenzione: eliminare una cartella cancellerà anche il suo contenuto, procedere ugualmente? [Y/n]\n"RESET);
                 ans = getchar();
@@ -514,14 +514,14 @@ int shell_rm(char **args) {
                         printf("Errore in delete_force per %s\n", handle_name);
                         return -1;
                     }
-                    printf(BLU"Operazione %s eseguita\n", handle_name);
+                    printf(BLU"Operazione %s eseguita\n"RESET, handle_name);
                 } else {
-                    printf(BLU"Eliminazione di %s annullata\n", handle_name);
+                    printf(BLU"Eliminazione di %s annullata\n"RESET, handle_name);
                     continue;
                 }
             } else {
                 if (DirHandle_delete(fs, handle_name) < 0) {
-                    printf(RED"Errore nell'eliminazione della directory, se contiene elementi : RM -RF <dir> %s\n", handle_name);
+                    printf(RED"Errore nell'eliminazione della directory, se contiene elementi : RM -RF %s\n"RESET, handle_name);
                     return -1;
                 }
                 printf(BLU"Directory %s eliminata\n", handle_name);
@@ -529,7 +529,7 @@ int shell_rm(char **args) {
         } 
         else { 
             if (FileHandle_delete(fs, handle_name) < 0) {
-                printf(RED"Errore nell'eliminazione del file %s\n", handle_name);
+                printf(RED"Errore nell'eliminazione del file %s\n"RESET, handle_name);
                 return -1;
             }
             printf(BLU"File %s eliminato\n", handle_name);
@@ -555,6 +555,7 @@ int shell_help(char **args) {
     "CAT <file>\n"
     "APPEND <file> <testo>\n"
     "RM [-RF] <files/cartelle>\n"
+    "MV <file> <cartella>\n"
     "CHMOD <permessi>\n"
     "CODE <file> per aprire un file esistente in vscode\n"
     "\n"
@@ -570,7 +571,7 @@ return 1;
 }
 int shell_close(char **args) {
     if(args_count(args)!= 1){
-        printf(RED "Uso corretto: UNMOUNT\n");
+        printf(RED "Uso corretto: CLOSE\n"RESET);
         return -1;
     }
     if(!fs){
@@ -659,13 +660,6 @@ int args_count(char** args){
     }
     return c;
 }
-/*int shell_pwd(char** args){
-    if(args_count(args) != 1){
-        return -1;
-    }
-    printf("La working directory è %s\n",pwd);
-    return 1;
-}*/
 int shell_code(char **args){
     if(args_count(args) != 2){
         printf(RED "Uso corretto: CODE <file>\n" RESET);
@@ -674,11 +668,9 @@ int shell_code(char **args){
     char* filename = args[1];
     Dir_Entry* entry = Dir_Entry_find_name(fs, filename, fs->curr_dir);
     if(!entry){
-        print_error(FILE_NOT_FOUND);
         return -1;
     }
-    if(entry->is_dir == 0) {
-        print_error(NOT_A_FILE);
+    if(entry->is_dir == ENTRY_TYPE_DIR) {
         return -1;
     }
     FileHandle* fh = FileHandle_open(fs, filename, PERM_READ);
@@ -747,7 +739,29 @@ int shell_code(char **args){
     return 1;
 }
 int shell_clear(char** args){
+    if(args_count(args) != 1){
+        printf(RED "Uso corretto: CLEAR\n" RESET);
+        return -1;
+    }
     printf("\033[H\033[J");
     fflush(stdout);
     return 1;
+}
+int shell_mv(char**args){
+    if(args_count(args) != 3){
+        printf("Uso corretto: MV <file> <dir>\n");
+        return -1;
+    }
+    char* filename = args[1];
+    char* dirname = args[2];
+    FileHandle* fh = FileHandle_open(fs,filename,PERM_NO);
+    if(!fh) return -1;
+    if(FileHandle_mv(fs,fh,dirname)<0){
+        printf(RED"Operaziona fallita\n"RESET);
+        return -1;
+    }else{
+        printf(BLU"File spostato correttamente\n"RESET);
+        return 1;
+    }
+    
 }
