@@ -418,29 +418,55 @@ int FileHandle_mv(FileSystem* fs, FileHandle* src, char* dst){
         return -1;
     }
     char* filename = src->dir->filename;
-    Dir_Entry* src_de = Dir_Entry_find_name(fs,filename,fs->curr_dir);
+    Dir_Entry* src_de = src->dir;
     if(src->open){
         FileHandle_close(fs,src);
     }
-    Dir_Entry* dst_de = Dir_Entry_find_name(fs,dst,fs->curr_dir);
-    if(!dst_de){
-        print_error(DIR_NOT_FOUND);
+    uint16_t dst_block; 
+    if(strcmp(dst,".") == 0){
+        printf("Operazione non consentita\n");
         return -1;
     }
-    if(dst_de->is_dir == ENTRY_TYPE_FILE){
-        print_error(NOT_A_DIR);
-        return -1;
+    int root = 0;
+    if(strcmp(dst,"/") == 0 || strcmp(dst,"~") == 0){
+        if(fs->curr_dir == ROOT_DIR_START_BLOCK){
+            printf(BLU"Già in root\n"RESET);
+            return -1;
+        }
+        root = 1;
+        dst_block = ROOT_DIR_START_BLOCK;
+    }else if(strcmp(dst,"..") == 0){
+        if(fs->curr_dir == ROOT_DIR_START_BLOCK){
+            printf(BLU"Già in root\n"RESET);
+            return -1;
+        }
+        uint32_t offset = (fs->curr_dir - DATA_START_BLOCK) * BLOCK_SIZE;
+        Dir_Entry* entries = (Dir_Entry*)(fs->data + offset);
+        dst_block = entries[1].first_block;
     }
-    Dir_Entry* existing = Dir_Entry_find_name(fs, filename, dst_de->first_block);
-    if(existing){
-        printf(RED "%s già contiene un file con questo nome\n"RESET,dst_de->filename);
-        return -1;
+    Dir_Entry* dst_de;
+    if(!root){
+        dst_de = Dir_Entry_find_name(fs,dst,fs->curr_dir);
+        if(!dst_de){
+            print_error(DIR_NOT_FOUND);
+            return -1;
+        }
+        if(dst_de->is_dir == ENTRY_TYPE_FILE){
+            print_error(NOT_A_DIR);
+            return -1;
+        }
+        dst_block = dst_de->first_block;
     }
-    Dir_Entry* free_entry = Dir_Entry_find_free(fs, dst_de->first_block);
-    if (!free_entry) {
-        print_error(FULL_DIR);
-        return -1;
-    }
+    Dir_Entry* existing = Dir_Entry_find_name(fs, filename, dst_block);
+        if(existing){
+            printf(RED "%s già contiene un file con questo nome\n"RESET,dst_de->filename);
+            return -1;
+        }
+        Dir_Entry* free_entry = Dir_Entry_find_free(fs, dst_block);
+        if (!free_entry) {
+            print_error(FULL_DIR);
+            return -1;
+        }
     memcpy(free_entry, src_de, sizeof(Dir_Entry));    
     memset(src_de, 0, sizeof(Dir_Entry));
     return 1;

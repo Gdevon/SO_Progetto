@@ -1,16 +1,30 @@
-CC=gcc
-CCOPTS=--std=gnu99 -Wall -g 
-OBJS=DIR_Entry.o  Errors.o  FAT_info.o  FS_info.o  FileHandle.o  linked_list.o ListHandle.o DirHandle.o shell.o run.o 
-HEADERS=FileHandle.h FAT_info.h DIR_Entry.h DirHandle.h FS_info.h Errors.h linked_list.h ListHandle.h DirHandle.h shell.h Extern.h Colors.h
-BINS = run
-.phony: clean all
+CC = gcc
+CCOPTS = --std=gnu99 -Wall -g
+
+SRC_DIR = src
+OBJ_DIR = objs
+BIN_DIR = bins
+
+OBJS = $(OBJ_DIR)/DIR_Entry.o $(OBJ_DIR)/Errors.o $(OBJ_DIR)/FAT_info.o $(OBJ_DIR)/FS_info.o $(OBJ_DIR)/FileHandle.o $(OBJ_DIR)/linked_list.o $(OBJ_DIR)/ListHandle.o $(OBJ_DIR)/DirHandle.o $(OBJ_DIR)/shell.o $(OBJ_DIR)/run.o
+
+HEADERS =  $(SRC_DIR)/FileHandle.h  $(SRC_DIR)/FAT_info.h  $(SRC_DIR)/DIR_Entry.h  $(SRC_DIR)/DirHandle.h  $(SRC_DIR)/FS_info.h  $(SRC_DIR)/Errors.h  $(SRC_DIR)/linked_list.h $(SRC_DIR)/ListHandle.h  $(SRC_DIR)/shell.h  $(SRC_DIR)/Extern.h  $(SRC_DIR)/Colors.h
+
+BINS = $(BIN_DIR)/run
+.phony: all clean
+
 all: $(BINS)
-%.o: %.c $(HEADERS)
-	@$(CC) $(CCOPTS) -c -o $@ $<
+
 $(BINS): $(OBJS)
+	@mkdir -p $(BIN_DIR)
 	@$(CC) $(CCOPTS) -o $@ $^
 	@echo "Eseguibile creato: $@"
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADERS)
+	@mkdir -p $(OBJ_DIR)
+	@$(CC) $(CCOPTS) -c -o $@ $<
+	@echo "Compilato: $< -> $@"
+
+
 clean:
-	@rm -f run *.o *.fs *.FS *~
-	@rm -rf tmp_code
+	@rm -rf $(OBJ_DIR) $(BIN_DIR) *.fs *.FS *~
 	@echo "Pulizia completata"

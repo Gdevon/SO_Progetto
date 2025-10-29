@@ -190,7 +190,7 @@ int Dir_Entry_change(FileSystem* fs, char* name){
     if(!fs){print_error(FS_NOTINIT);return -1;}
     if(!fs->mounted){print_error(DISK_UNMOUNTED);return -1;}
     if(name[0] == '\0'){print_error(EMPTY_NAME);return -1;}
-    if (strcmp(name, "/") == 0){
+    if (strcmp(name, "/") == 0 || strcmp(name,"~") == 0){
         fs->curr_dir = ROOT_DIR_START_BLOCK;
         printf("Cambiato in root directory\n");
         return 1;

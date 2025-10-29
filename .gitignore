@@ -1,3 +1,5 @@
+/objs/
+/bins/
 *.o
 *.a
 *.fs
